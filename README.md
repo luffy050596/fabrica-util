@@ -1,3 +1,22 @@
 # Vulcan Frame
 
 ## vulcan-pkg-tool
+
+
+Vulcan-pkg-tool is a tool package for Vulcan-Frame, it provides some useful and general tools for Vulcan-Frame.
+
+## Usage
+
+```go
+import (
+    "github.com/luffy050596/vulcan-pkg-tool/rand"
+)
+
+func main() {
+    rand.RandAlphaNumString(10)
+}
+```
+
+## Contributing
+
+If you have any suggestions or feedback, please feel free to open an issue or submit a pull request.
