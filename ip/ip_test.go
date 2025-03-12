@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

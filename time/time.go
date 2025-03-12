@@ -2,21 +2,31 @@ package time
 
 import (
 	"time"
+
+	"github.com/dromara/carbon/v2"
 )
 
+var (
+	c carbon.Carbon
+)
+
+func Init(language string) {
+	c = carbon.SetLanguage(carbon.NewLanguage().SetLocale(language))
+}
+
 func Now() time.Time {
-	return time.Now()
+	return c.Now().StdTime()
 }
 
 func NowUnix() int64 {
-	return time.Now().Unix()
+	return c.Now().Timestamp()
 }
 
 func Time(timestamp int64) time.Time {
 	if timestamp == 0 {
 		return time.Time{}
 	}
-	return time.Unix(timestamp, 0)
+	return c.CreateFromTimestamp(timestamp, c.Timezone()).StdTime()
 }
 
 func NextDailyTime(t time.Time, delay time.Duration) time.Time {
@@ -32,21 +42,13 @@ func NextMonthlyTime(t time.Time, delay time.Duration) time.Time {
 }
 
 func StartOfDay(t time.Time) time.Time {
-	year, month, day := t.Date()
-	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+	return t.Truncate(24 * time.Hour)
 }
 
 func StartOfWeek(t time.Time) time.Time {
-	year, month, day := t.Date()
-	daysSinceMonday := int(t.Weekday())
-	if daysSinceMonday == 0 {
-		daysSinceMonday = 7
-	}
-	daysSinceMonday--
-	return time.Date(year, month, day-daysSinceMonday, 0, 0, 0, 0, t.Location())
+	return t.Truncate(7 * 24 * time.Hour)
 }
 
 func StartOfMonth(t time.Time) time.Time {
-	year, month, _ := t.Date()
-	return time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
+	return carbon.CreateFromStdTime(t).StartOfMonth().StdTime()
 }

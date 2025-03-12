@@ -3,8 +3,9 @@ package cache
 import (
 	"context"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
-	"github.com/redis/go-redis/v6"
+	"github.com/redis/go-redis/v9"
 )
 
 type Cacheable interface {

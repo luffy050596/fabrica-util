@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 )

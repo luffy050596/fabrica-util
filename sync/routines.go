@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"runtime"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 )
 
