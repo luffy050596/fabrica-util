@@ -1,4 +1,4 @@
-module github.com/luffy050596/vulcan-pkg-tool
+module github.com/go-pantheon/vulcan-util
 
 go 1.23.0
 

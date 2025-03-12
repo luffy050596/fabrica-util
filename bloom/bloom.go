@@ -4,7 +4,7 @@ import (
 	"hash/fnv"
 	"math"
 
-	"github.com/luffy050596/vulcan-pkg-tool/bitmap"
+	"github.com/go-pantheon/vulcan-util/bitmap"
 )
 
 // BloomFilter represents a thread-safe Bloom filter
