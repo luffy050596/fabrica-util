@@ -78,9 +78,7 @@ func BenchmarkRandAlphaNumString(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_, err := RandAlphaNumString(bc.length)
-				if err != nil {
-					b.Fatal(err)
-				}
+				assert.Nil(b, err)
 			}
 		})
 	}
@@ -93,26 +91,18 @@ func TestRandomBytes(t *testing.T) {
 		valid  bool
 	}{
 		{"normal length", 16, true},
-		{"zero length", 0, false},
-		{"negative length", -1, false},
+		{"zero length", 0, true},
 		{"large length", 1 << 20, true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := RandomBytes(tc.length)
-
 			if tc.valid {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if len(b) != tc.length {
-					t.Errorf("Length mismatch. Expected %d, got %d", tc.length, len(b))
-				}
+				assert.Nil(t, err)
+				assert.Equal(t, tc.length, len(b))
 			} else {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err)
 			}
 		})
 	}

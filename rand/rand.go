@@ -34,6 +34,10 @@ func RandAlphaNumString(length int) (string, error) {
 }
 
 func RandomBytes(n int) ([]byte, error) {
+	if n <= 0 {
+		return []byte{}, nil
+	}
+
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
