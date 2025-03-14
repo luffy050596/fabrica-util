@@ -2,10 +2,11 @@ package sync
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 )
@@ -97,7 +98,7 @@ func (s *Stopper) DoStop(f func()) {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		log.Errorf("[threading.Stopper.DoStop] Stop operation timed out after %.2fs", s.stopTimeout.Seconds())
+		slog.Error("[threading.Stopper.DoStop] Stop operation timed out after", "latency", fmt.Sprintf("%.2fs", s.stopTimeout.Seconds()))
 	}
 }
 

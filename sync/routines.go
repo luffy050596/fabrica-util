@@ -2,9 +2,9 @@ package sync
 
 import (
 	"bytes"
+	"log/slog"
 	"runtime"
 
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,7 @@ func GoSafe(msg string, fn func() error) {
 		rid := RoutineId()
 		defer func() {
 			if r := recover(); r != nil {
-				log.Error("goroutine panic recovered",
+				slog.Error("goroutine panic recovered",
 					"message", msg,
 					"routine_id", rid,
 					"error", CatchErr(r),
@@ -34,7 +34,7 @@ func GoSafe(msg string, fn func() error) {
 		}()
 
 		if err := RunSafe(fn); err != nil {
-			log.Error("goroutine error occurred",
+			slog.Error("goroutine error occurred",
 				"message", msg,
 				"routine_id", rid,
 				"error", err,

@@ -3,9 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -34,7 +34,7 @@ func NewMongo(dbsn, dbname string) (db *mongo.Database, cleanup func(), err erro
 
 	cleanup = func() {
 		if err = cli.Disconnect(context.Background()); err != nil {
-			log.Errorf("%+v", errors.Wrap(err, "mongo disconnect failed"))
+			slog.Error("mongo disconnect failed", "error", err)
 		}
 	}
 
@@ -92,6 +92,6 @@ func InitIncrementIDDoc(ctx context.Context, coll *mongo.Collection, incrCollNam
 	}); err != nil {
 		return errors.Wrapf(err, "mongo insert one failed. incrCollName=%s", incrCollName)
 	}
-	log.Infof("mongo increment id doc created. incrCollName=%s", incrCollName)
+	slog.Info("mongo increment id doc created", "incrCollName", incrCollName)
 	return nil
 }
