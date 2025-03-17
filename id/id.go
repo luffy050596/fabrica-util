@@ -10,7 +10,7 @@ import (
 
 const (
 	idStrLen = 18
-	salt     = "vulcan2020"
+	salt     = "fabrica2020"
 	zoneBit  = 8
 	MaxZone  = (1 << zoneBit) - 1
 )

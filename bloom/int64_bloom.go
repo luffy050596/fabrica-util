@@ -1,7 +1,7 @@
 package bloom
 
 import (
-	"github.com/go-pantheon/vulcan-util/bitmap"
+	"github.com/go-pantheon/fabrica-util/bitmap"
 )
 
 // Int64BloomFilter optimized Bloom filter for int64

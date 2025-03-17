@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"io"
 
-	"github.com/go-pantheon/vulcan-util/security/curve25519"
+	"github.com/go-pantheon/fabrica-util/security/curve25519"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/hkdf"
 )

@@ -1,4 +1,4 @@
-module github.com/go-pantheon/vulcan-util
+module github.com/go-pantheon/fabrica-util
 
 go 1.23.0
 

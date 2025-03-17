@@ -9,7 +9,7 @@ import (
 	"io"
 	"testing"
 
-	vrand "github.com/go-pantheon/vulcan-util/rand"
+	vrand "github.com/go-pantheon/fabrica-util/rand"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/curve25519"
 )

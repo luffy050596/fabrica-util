@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-pantheon/vulcan-util/rand"
+	"github.com/go-pantheon/fabrica-util/rand"
 	"github.com/stretchr/testify/assert"
 )
 
