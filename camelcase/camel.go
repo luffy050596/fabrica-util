@@ -71,18 +71,21 @@ func toUpperCamel(s string) string {
 		return ""
 	}
 
-	var builder strings.Builder
 	parts := strings.Split(s, "_")
-	for _, part := range parts {
-		ps := strings.Split(part, "-")
-		for _, p := range ps {
-			if p == "" {
-				continue
-			}
-			r := []rune(strings.ToLower(p))
-			r[0] = unicode.ToUpper(r[0])
-			builder.WriteString(string(r))
+	if len(parts) == 1 {
+		r := []rune(s)
+		r[0] = unicode.ToUpper(r[0])
+		return string(r)
+	}
+
+	var builder strings.Builder
+	for _, p := range parts {
+		if p == "" {
+			continue
 		}
+		r := []rune(strings.ToLower(p))
+		r[0] = unicode.ToUpper(r[0])
+		builder.WriteString(string(r))
 	}
 
 	return builder.String()

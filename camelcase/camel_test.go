@@ -15,7 +15,9 @@ func TestToUpperCamel(t *testing.T) {
 		{"Empty string", "", ""},
 		{"Single word", "hello", "Hello"},
 		{"Snake case", "hello_world", "HelloWorld"},
-		{"Kebab case", "hello-world", "HelloWorld"},
+		{"lower camel case", "helloWorld", "HelloWorld"},
+		{"upper camel case", "HelloWorld", "HelloWorld"},
+		{"upper camel case", "HelloWorld_1", "Helloworld1"}, // all parts split by underscore should be recognized as a word
 		{"All caps", "HTTP_SERVER", "HTTPServer"},
 		{"Mixed case", "mySQL_Query", "MySQLQuery"},
 		{"With numbers", "user_id_2", "UserID2"},
