@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	c carbon.Carbon
+	c *carbon.Carbon
 )
 
 func Init(language string) {
@@ -15,18 +15,18 @@ func Init(language string) {
 }
 
 func Now() time.Time {
-	return c.Now().StdTime()
+	return c.StdTime()
 }
 
 func NowUnix() int64 {
-	return c.Now().Timestamp()
+	return c.Timestamp()
 }
 
 func Time(timestamp int64) time.Time {
 	if timestamp == 0 {
 		return time.Time{}
 	}
-	return c.CreateFromTimestamp(timestamp, c.Timezone()).StdTime()
+	return carbon.CreateFromTimestamp(timestamp, c.Timezone()).StdTime()
 }
 
 func Format(t time.Time) string {
