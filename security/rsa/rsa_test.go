@@ -9,7 +9,7 @@ import (
 	"io"
 	"testing"
 
-	vrand "github.com/go-pantheon/fabrica-util/rand"
+	"github.com/go-pantheon/fabrica-util/xrand"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/curve25519"
 )
@@ -136,7 +136,7 @@ func BenchmarkRSAEncrypt(b *testing.B) {
 	pub, _, _, _, err := generateTestKeyPair(4096)
 	assert.NoError(b, err)
 
-	data, _ := vrand.RandAlphaNumString(256)
+	data, _ := xrand.RandAlphaNumString(256)
 	org := []byte(data)
 
 	for i := 0; i < b.N; i++ {
@@ -148,7 +148,7 @@ func BenchmarkRSADecrypt(b *testing.B) {
 	pub, pri, _, _, err := generateTestKeyPair(4096)
 	assert.NoError(b, err)
 
-	data, _ := vrand.RandAlphaNumString(30)
+	data, _ := xrand.RandAlphaNumString(30)
 	org := []byte(data)
 
 	dst, _ := rsa.EncryptPKCS1v15(rand.Reader, pub, org)

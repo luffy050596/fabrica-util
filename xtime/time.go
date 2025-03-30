@@ -1,4 +1,4 @@
-package time
+package xtime
 
 import (
 	"time"
@@ -27,6 +27,10 @@ func Time(timestamp int64) time.Time {
 		return time.Time{}
 	}
 	return c.CreateFromTimestamp(timestamp, c.Timezone()).StdTime()
+}
+
+func Format(t time.Time) string {
+	return carbon.CreateFromStdTime(t, c.Timezone()).Format(time.DateTime + " -0700")
 }
 
 func NextDailyTime(t time.Time, delay time.Duration) time.Time {

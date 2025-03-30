@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-pantheon/fabrica-util/rand"
+	"github.com/go-pantheon/fabrica-util/xrand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +43,7 @@ func TestAESCBCCodec(t *testing.T) {
 		},
 	}
 
-	data, err := rand.RandAlphaNumString(32)
+	data, err := xrand.RandAlphaNumString(32)
 	fmt.Println(data)
 	assert.Nil(t, err)
 	aesKey := []byte(data)
@@ -75,7 +75,7 @@ func TestInvalidInputs(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Test with nil inputs
-	validKey, _ := rand.RandAlphaNumString(32)
+	validKey, _ := xrand.RandAlphaNumString(32)
 	block, _ := NewBlock([]byte(validKey))
 
 	_, err = Encrypt(nil, block, org)
@@ -89,7 +89,7 @@ func TestInvalidInputs(t *testing.T) {
 }
 
 func BenchmarkAESCBCEncrypt(b *testing.B) {
-	data, _ := rand.RandAlphaNumString(32)
+	data, _ := xrand.RandAlphaNumString(32)
 	key := []byte(data)
 	block, _ := NewBlock(key)
 
@@ -101,7 +101,7 @@ func BenchmarkAESCBCEncrypt(b *testing.B) {
 }
 
 func BenchmarkAESCBCDecrypt(b *testing.B) {
-	data, _ := rand.RandAlphaNumString(32)
+	data, _ := xrand.RandAlphaNumString(32)
 	key := []byte(data)
 	block, _ := NewBlock(key)
 	ser, _ := Encrypt(key, block, org)
