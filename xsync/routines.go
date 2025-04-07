@@ -19,9 +19,18 @@ const (
 // It logs any errors that occur during execution.
 // msg: descriptive message for logging
 // fn: function to execute safely
-func GoSafe(msg string, fn func() error) {
+func GoSafe(msg string, fn func() error, filters ...func(err error) bool) {
+	filter := func(err error) bool {
+		for _, f := range filters {
+			if f(err) {
+				return true
+			}
+		}
+		return false
+	}
+
 	go func() {
-		// 获取协程ID用于日志追踪
+		// get routine id for logging
 		rid := RoutineId()
 		defer func() {
 			if r := recover(); r != nil {
@@ -34,11 +43,13 @@ func GoSafe(msg string, fn func() error) {
 		}()
 
 		if err := RunSafe(fn); err != nil {
-			slog.Error("goroutine error occurred",
-				"message", msg,
-				"routine_id", rid,
-				"error", err,
-			)
+			if !filter(err) {
+				slog.Error("goroutine error occurred.",
+					"message", msg,
+					"routine_id", rid,
+					"error", err,
+				)
+			}
 		}
 	}()
 }

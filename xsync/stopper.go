@@ -2,11 +2,10 @@ package xsync
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 )
@@ -41,8 +40,18 @@ type WaitStoppable interface {
 
 var _ Stoppable = (*Stopper)(nil)
 
+type StopperOption func(*Stopper)
+
+func WithLog(log *log.Helper) StopperOption {
+	return func(s *Stopper) {
+		s.log = log
+	}
+}
+
 // Stopper implements Stoppable interface
 type Stopper struct {
+	log *log.Helper
+
 	_triggerLock  sync.Mutex
 	stopTrigger   chan struct{} // the notification of stop triggered
 	stopTriggered *atomic.Bool  // stop is triggered
@@ -55,8 +64,8 @@ type Stopper struct {
 	stopTimeout time.Duration // the timeout of stop
 }
 
-func NewStopper(stopTimeout time.Duration) *Stopper {
-	return &Stopper{
+func NewStopper(stopTimeout time.Duration, opts ...StopperOption) *Stopper {
+	s := &Stopper{
 		stopTrigger:   make(chan struct{}),
 		stopTriggered: atomic.NewBool(false),
 
@@ -66,6 +75,12 @@ func NewStopper(stopTimeout time.Duration) *Stopper {
 		stoppedChan: make(chan struct{}),
 		stopTimeout: stopTimeout,
 	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s
 }
 func (s *Stopper) DoStop(f func()) {
 	if s.IsStopping() {
@@ -98,7 +113,7 @@ func (s *Stopper) DoStop(f func()) {
 	select {
 	case <-done:
 	case <-ctx.Done():
-		slog.Error("[threading.Stopper.DoStop] Stop operation timed out after", "latency", fmt.Sprintf("%.2fs", s.stopTimeout.Seconds()))
+		s.log.Error("Stopper stop timed out after timeout")
 	}
 }
 
