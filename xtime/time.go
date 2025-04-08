@@ -11,15 +11,8 @@ var (
 )
 
 func Init(language string) {
-	c = carbon.SetLanguage(carbon.NewLanguage().SetLocale(language))
-}
-
-func Now() time.Time {
-	return c.StdTime()
-}
-
-func NowUnix() int64 {
-	return c.Timestamp()
+	c = carbon.NewCarbon().SetTimezone(carbon.DefaultTimezone)
+	c.SetLanguage(carbon.NewLanguage().SetLocale(language))
 }
 
 func Time(timestamp int64) time.Time {

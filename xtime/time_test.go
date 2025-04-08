@@ -12,20 +12,6 @@ func TestInit(t *testing.T) {
 	assert.NotNil(t, c)
 }
 
-func TestNow(t *testing.T) {
-	Init("en")
-	now := Now()
-	assert.True(t, now.Before(time.Now().Add(time.Second)))
-	assert.True(t, now.After(time.Now().Add(-time.Second)))
-}
-
-func TestNowUnix(t *testing.T) {
-	Init("en")
-	unix := NowUnix()
-	assert.True(t, unix > 0)
-	assert.True(t, unix <= time.Now().Unix())
-}
-
 func TestTime(t *testing.T) {
 	Init("en")
 	tests := []struct {
