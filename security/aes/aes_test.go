@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-pantheon/fabrica-util/xrand"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -44,7 +45,6 @@ func TestAESCBCCodec(t *testing.T) {
 	}
 
 	data, err := xrand.RandAlphaNumString(32)
-	fmt.Println(data)
 	assert.Nil(t, err)
 	aesKey := []byte(data)
 	aesBlock, err := NewBlock(aesKey)
@@ -111,4 +111,10 @@ func BenchmarkAESCBCDecrypt(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func TestGenerateAESKey(t *testing.T) {
+	data, err := xrand.RandAlphaNumString(32)
+	require.Nil(t, err)
+	fmt.Println(data)
 }

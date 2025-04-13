@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"io"
 	"testing"
 
@@ -203,4 +204,15 @@ func generateTestKeyPair(bits int) (*rsa.PublicKey, *rsa.PrivateKey, []byte, []b
 	}
 
 	return pub, pri, pubBytes, priBytes, nil
+}
+
+func TestGenerateKeyPair(t *testing.T) {
+	pub, pri, pubBytes, priBytes, err := generateTestKeyPair(4096)
+	assert.NoError(t, err)
+	assert.NotNil(t, pub)
+	assert.NotNil(t, pri)
+	assert.NotEmpty(t, pubBytes)
+	assert.NotEmpty(t, priBytes)
+	t.Logf("pub: %v", base64.URLEncoding.EncodeToString(pubBytes))
+	t.Logf("pri: %v", base64.URLEncoding.EncodeToString(priBytes))
 }
