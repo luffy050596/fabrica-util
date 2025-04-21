@@ -1,3 +1,4 @@
+// Package rsa provides RSA encryption, decryption, signing, and key management utilities
 package rsa
 
 import (
@@ -21,6 +22,7 @@ func Encrypt(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "RSA encryption failed")
 	}
+
 	return ciphertext, nil
 }
 
@@ -37,6 +39,7 @@ func Decrypt(privKey *rsa.PrivateKey, ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "RSA decryption failed")
 	}
+
 	return plaintext, nil
 }
 

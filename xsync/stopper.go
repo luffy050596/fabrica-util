@@ -10,7 +10,8 @@ import (
 	"go.uber.org/atomic"
 )
 
-var GroupStopping = errors.New("ErrGroup is stopping") // Stoppable is stopping signal
+// ErrGroupStopping is returned when an ErrGroup is in the process of stopping
+var ErrGroupStopping = errors.New("ErrGroup is stopping") // Stoppable is stopping signal
 
 // Stoppable lifecycle stop manager interface
 type Stoppable interface {
@@ -40,8 +41,10 @@ type WaitStoppable interface {
 
 var _ Stoppable = (*Stopper)(nil)
 
+// StopperOption is a function that configures a Stopper
 type StopperOption func(*Stopper)
 
+// WithLog sets a logger for the Stopper
 func WithLog(log *log.Helper) StopperOption {
 	return func(s *Stopper) {
 		s.log = log
@@ -64,6 +67,7 @@ type Stopper struct {
 	stopTimeout time.Duration // the timeout of stop
 }
 
+// NewStopper creates a new Stopper with the given timeout and options
 func NewStopper(stopTimeout time.Duration, opts ...StopperOption) *Stopper {
 	s := &Stopper{
 		stopTrigger:   make(chan struct{}),
@@ -82,6 +86,8 @@ func NewStopper(stopTimeout time.Duration, opts ...StopperOption) *Stopper {
 
 	return s
 }
+
+// DoStop executes the stop function if the stopper is not already stopping
 func (s *Stopper) DoStop(f func()) {
 	if s.IsStopping() {
 		return
@@ -117,6 +123,7 @@ func (s *Stopper) DoStop(f func()) {
 	}
 }
 
+// TriggerStop triggers the stop process if it hasn't been triggered already
 func (s *Stopper) TriggerStop() {
 	if s.isStopTriggered() {
 		return
@@ -133,22 +140,26 @@ func (s *Stopper) TriggerStop() {
 	s.stopTriggered.Store(true)
 }
 
-func (s *Stopper) isStopTriggered() bool {
-	return s.stopTriggered.Load()
-}
-
+// StopTriggered returns a channel that is closed when stop is triggered
 func (s *Stopper) StopTriggered() <-chan struct{} {
 	return s.stopTrigger
 }
 
+// IsStopping returns true if the stopper is in the process of stopping
 func (s *Stopper) IsStopping() bool {
 	return s.isStopping.Load()
 }
 
+// Stopping returns a channel that is closed when stopping has started
 func (s *Stopper) Stopping() <-chan struct{} {
 	return s.stoppingChan
 }
 
+// WaitStopped blocks until the stopper has completed stopping
 func (s *Stopper) WaitStopped() {
 	<-s.stoppedChan
+}
+
+func (s *Stopper) isStopTriggered() bool {
+	return s.stopTriggered.Load()
 }

@@ -1,3 +1,4 @@
+// Package camelcase provides functions to convert strings to camel case and underscore case.
 package camelcase
 
 import (
@@ -24,7 +25,6 @@ func init() {
 }
 
 func buildReplacers() {
-
 	camelCommonPairs := make([]string, 0, len(commonInitialisms)*2)
 	abbrCommonPairs := make([]string, 0, len(commonInitialisms)*2)
 
@@ -40,7 +40,7 @@ func buildReplacers() {
 	abbrCommonReplacer = strings.NewReplacer(abbrCommonPairs...)
 }
 
-// ToUpperCamel
+// ToUpperCamel converts a string to upper camel case.
 func ToUpperCamel(s string) string {
 	if s == "" {
 		return ""
@@ -48,10 +48,11 @@ func ToUpperCamel(s string) string {
 
 	s = toUpperCamel(s)
 	s = camelCommonAbbrReplacer.Replace(s)
+
 	return s
 }
 
-// ToLowerCamel
+// ToLowerCamel converts a string to lower camel case.
 func ToLowerCamel(s string) string {
 	if s == "" {
 		return ""
@@ -72,17 +73,21 @@ func toUpperCamel(s string) string {
 	}
 
 	parts := strings.Split(s, "_")
+
 	if len(parts) == 1 {
 		r := []rune(s)
 		r[0] = unicode.ToUpper(r[0])
+
 		return string(r)
 	}
 
 	var builder strings.Builder
+
 	for _, p := range parts {
 		if p == "" {
 			continue
 		}
+
 		r := []rune(strings.ToLower(p))
 		r[0] = unicode.ToUpper(r[0])
 		builder.WriteString(string(r))
@@ -91,7 +96,7 @@ func toUpperCamel(s string) string {
 	return builder.String()
 }
 
-// ToUnderScore
+// ToUnderScore converts a string to underscore case.
 func ToUnderScore(s string) string {
 	if s == "" {
 		return ""
@@ -100,18 +105,20 @@ func ToUnderScore(s string) string {
 	s = abbrCommonReplacer.Replace(s)
 
 	var builder strings.Builder
+
 	runes := []rune(s)
 	length := len(runes)
 
 	for i := range length {
-		// 当前字符是大写或数字
+		// is upper or digit
 		if unicode.IsUpper(runes[i]) || unicode.IsDigit(runes[i]) {
-			// 非首字符且前一个字符不是大写时才添加下划线
+			// is not first character and previous character is not upper
 			if i > 0 &&
 				!unicode.IsUpper(runes[i-1]) &&
 				!unicode.IsDigit(runes[i-1]) {
 				builder.WriteByte('_')
 			}
+
 			builder.WriteRune(unicode.ToLower(runes[i]))
 		} else {
 			builder.WriteRune(runes[i])

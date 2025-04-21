@@ -8,12 +8,15 @@ import (
 )
 
 func TestInit(t *testing.T) {
+	t.Parallel()
 	Init("zh-CN")
 	assert.NotNil(t, c)
 }
 
 func TestTime(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	tests := []struct {
 		name      string
 		timestamp int64
@@ -33,6 +36,8 @@ func TestTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := Time(tt.timestamp)
 			assert.Equal(t, tt.want, got)
 		})
@@ -40,7 +45,9 @@ func TestTime(t *testing.T) {
 }
 
 func TestNextDailyTime(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	tests := []struct {
 		name     string
 		now      time.Time
@@ -87,6 +94,8 @@ func TestNextDailyTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			next := NextDailyTime(tt.now, tt.delay)
 			assert.Equal(t, tt.expected, next)
 		})
@@ -94,7 +103,9 @@ func TestNextDailyTime(t *testing.T) {
 }
 
 func TestNextWeeklyTime(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	tests := []struct {
 		name     string
 		now      time.Time
@@ -135,6 +146,8 @@ func TestNextWeeklyTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			next := NextWeeklyTime(tt.now, tt.delay)
 			assert.Equal(t, tt.expected, next)
 		})
@@ -142,8 +155,9 @@ func TestNextWeeklyTime(t *testing.T) {
 }
 
 func TestNextMonthlyTime(t *testing.T) {
-
+	t.Parallel()
 	Init("en")
+
 	tests := []struct {
 		name     string
 		now      time.Time
@@ -184,6 +198,8 @@ func TestNextMonthlyTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			next := NextMonthlyTime(tt.now, tt.delay)
 			assert.Equal(t, tt.expected, next)
 		})
@@ -191,7 +207,9 @@ func TestNextMonthlyTime(t *testing.T) {
 }
 
 func TestStartOfDay(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	input := time.Date(2024, 3, 15, 10, 30, 45, 0, time.UTC)
 	expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 
@@ -200,7 +218,9 @@ func TestStartOfDay(t *testing.T) {
 }
 
 func TestStartOfWeek(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	input := time.Date(2020, 3, 15, 10, 30, 45, 0, time.UTC)
 	expected := time.Date(2020, 3, 9, 0, 0, 0, 0, time.UTC)
 
@@ -209,7 +229,9 @@ func TestStartOfWeek(t *testing.T) {
 }
 
 func TestStartOfMonth(t *testing.T) {
+	t.Parallel()
 	Init("en")
+
 	input := time.Date(2024, 3, 15, 10, 30, 45, 0, time.UTC)
 	expected := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
 

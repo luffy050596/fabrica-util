@@ -1,3 +1,4 @@
+// Package curve25519 provides Curve25519 cryptographic functions for key generation and shared secrets
 package curve25519
 
 import (
@@ -14,7 +15,9 @@ func GenerateKeyPair() (privateKey [32]byte, publicKey [32]byte, err error) {
 	if err != nil {
 		return [32]byte{}, [32]byte{}, errors.Wrap(err, "failed to generate random private key")
 	}
+
 	curve25519.ScalarBaseMult(&publicKey, &privateKey)
+
 	return privateKey, publicKey, nil
 }
 
@@ -28,8 +31,11 @@ func ParsePublicKey(b []byte) ([32]byte, error) {
 	if len(b) != 32 {
 		return [32]byte{}, errors.New("invalid public key length")
 	}
+
 	var publicKey [32]byte
+
 	copy(publicKey[:], b)
+
 	return publicKey, nil
 }
 
@@ -39,5 +45,6 @@ func ComputeSharedSecret(privateKey [32]byte, publicKey [32]byte) ([]byte, error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compute shared secret")
 	}
+
 	return secret, nil
 }

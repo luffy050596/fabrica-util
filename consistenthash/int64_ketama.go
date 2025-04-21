@@ -1,11 +1,14 @@
+// Package consistenthash provides consistent hashing implementations for both int64 and string keys
 package consistenthash
 
 import (
 	"hash"
+	"math"
 	"sort"
 	"strconv"
 	"sync"
 
+	"github.com/go-pantheon/fabrica-util/errors"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -21,6 +24,7 @@ func (r int64RingNodes) Len() int           { return len(r) }
 func (r int64RingNodes) Less(i, j int) bool { return r[i].hash < r[j].hash }
 func (r int64RingNodes) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
+// Int64HashRing is a consistent hash ring for int64 keys.
 type Int64HashRing struct {
 	sync.RWMutex
 	virtualSpots int
@@ -28,6 +32,7 @@ type Int64HashRing struct {
 	hashCache    sync.Pool
 }
 
+// NewInt64Ring creates a new Int64HashRing with the given number of virtual spots.
 func NewInt64Ring(virtualSpots int) *Int64HashRing {
 	if virtualSpots <= 0 {
 		virtualSpots = DefaultVirtualSpots
@@ -43,7 +48,9 @@ func NewInt64Ring(virtualSpots int) *Int64HashRing {
 	}
 }
 
-func (h *Int64HashRing) AddNode(nodeName string) {
+// AddNode adds a new node to the int64 hash ring with the specified node name
+// It creates virtual nodes based on the configured virtual spots and returns error if any
+func (h *Int64HashRing) AddNode(nodeName string) (err error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -51,38 +58,52 @@ func (h *Int64HashRing) AddNode(nodeName string) {
 	defer h.hashCache.Put(hasher)
 
 	nodes := make(int64RingNodes, 0, h.virtualSpots)
+
 	for i := range h.virtualSpots {
 		keyStr := nodeName + ":" + strconv.Itoa(i)
 
 		hasher.Reset()
-		hasher.Write([]byte(keyStr))
+		_, err = hasher.Write([]byte(keyStr))
+
+		if err != nil {
+			return errors.Wrap(err, "write to hasher failed")
+		}
+
 		hash64 := hasher.Sum64()
 
 		nodes = append(nodes, int64RingNode{
 			nodeName: nodeName,
-			key:      int64(hash64),
+			key:      convertToInt64(hash64),
 			hash:     hash64,
 		})
 	}
 
 	h.nodes = append(h.nodes, nodes...)
 	sort.Sort(h.nodes)
+
+	return nil
 }
 
+// RemoveNode removes a node from the hash ring.
 func (h *Int64HashRing) RemoveNode(nodeName string) {
 	h.Lock()
 	defer h.Unlock()
 
 	filtered := h.nodes[:0]
+
 	for _, n := range h.nodes {
 		if n.nodeName != nodeName {
 			filtered = append(filtered, n)
 		}
 	}
+
 	h.nodes = filtered
 }
 
-func (h *Int64HashRing) GetNode(key int64) (string, bool) {
+// GetNode returns the node name for the given key
+// It finds the closest virtual node in the ring and returns its node name
+// Also returns a boolean indicating if a node was found
+func (h *Int64HashRing) GetNode(key int64) (nodeName string, ok bool) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -90,7 +111,13 @@ func (h *Int64HashRing) GetNode(key int64) (string, bool) {
 		return "", false
 	}
 
-	targetHash := uint64(key)
+	var targetHash uint64
+	if key >= 0 {
+		targetHash = uint64(key)
+	} else {
+		targetHash = uint64(-key)
+	}
+
 	idx := sort.Search(len(h.nodes), func(i int) bool {
 		return h.nodes[i].hash >= targetHash
 	})
@@ -100,4 +127,13 @@ func (h *Int64HashRing) GetNode(key int64) (string, bool) {
 	}
 
 	return h.nodes[idx].nodeName, true
+}
+
+// convertToInt64 safely converts uint64 to int64, handling possible overflow
+func convertToInt64(val uint64) int64 {
+	if val > uint64(math.MaxInt64) {
+		return math.MaxInt64
+	}
+
+	return int64(val)
 }

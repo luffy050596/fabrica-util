@@ -1,3 +1,4 @@
+// Package channel provides secure communication channel utilities
 package channel
 
 import (
@@ -24,6 +25,7 @@ func GenerateKeyPair() (*ECDHKeyPair, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "generate key pair failed")
 	}
+
 	return &ECDHKeyPair{
 		PrivateKey: private,
 		PublicKey:  public,
@@ -107,6 +109,7 @@ func (d *Decryptor) Decrypt(ciphertext []byte) ([]byte, error) {
 
 	nonce := ciphertext[:d.aesgcm.NonceSize()]
 	ciphertext = ciphertext[d.aesgcm.NonceSize():]
+
 	return d.aesgcm.Open(nil, nonce, ciphertext, nil)
 }
 

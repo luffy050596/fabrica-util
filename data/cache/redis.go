@@ -1,3 +1,4 @@
+// Package cache provides Redis cache implementation with connection management
 package cache
 
 import (
@@ -8,10 +9,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Cacheable is an interface that represents a Redis client with the Cmdable interface
 type Cacheable interface {
 	redis.Cmdable
 }
 
+// NewRedis creates a new Redis client and returns a Cacheable interface
+// It also returns a cleanup function to close the connection
 func NewRedis(c *redis.Options) (rdb Cacheable, cleanup func(), err error) {
 	rdb = redis.NewClient(c)
 
@@ -30,9 +34,12 @@ func NewRedis(c *redis.Options) (rdb Cacheable, cleanup func(), err error) {
 		err = errors.Wrapf(err, "redis ping failed")
 		return
 	}
+
 	return
 }
 
+// NewRedisCluster creates a new Redis cluster client and returns a Cacheable interface
+// It also returns a cleanup function to close the connection
 func NewRedisCluster(c *redis.ClusterOptions) (rdb Cacheable, cleanup func(), err error) {
 	rdb = redis.NewClusterClient(c)
 
@@ -51,5 +58,6 @@ func NewRedisCluster(c *redis.ClusterOptions) (rdb Cacheable, cleanup func(), er
 		err = errors.Wrapf(err, "redis cluster ping failed")
 		return
 	}
+
 	return
 }

@@ -8,6 +8,8 @@ import (
 )
 
 func TestKeyExchange(t *testing.T) {
+	t.Parallel()
+
 	serverPrivate, serverPublic, err := GenerateKeyPair()
 	assert.NoError(t, err)
 
@@ -24,6 +26,8 @@ func TestKeyExchange(t *testing.T) {
 }
 
 func TestInvalidPublicKey(t *testing.T) {
+	t.Parallel()
+
 	invalidKey := make([]byte, 31)
 	_, err := rand.Read(invalidKey)
 	assert.NoError(t, err)
@@ -34,6 +38,7 @@ func TestInvalidPublicKey(t *testing.T) {
 
 func BenchmarkKeyGeneration(b *testing.B) {
 	b.ReportAllocs()
+
 	for i := 0; i < b.N; i++ {
 		_, _, err := GenerateKeyPair()
 		if err != nil {
@@ -58,6 +63,7 @@ func BenchmarkSharedSecretComputation(b *testing.B) {
 			if _, err := ComputeSharedSecret(serverPriv, clientPub); err != nil {
 				b.Fatal(err)
 			}
+
 			if _, err := ComputeSharedSecret(clientPriv, serverPub); err != nil {
 				b.Fatal(err)
 			}
@@ -69,6 +75,7 @@ var sink interface{} // prevent compiler optimize
 
 func BenchmarkKeyGenerationAndExchange(b *testing.B) {
 	b.ReportAllocs()
+
 	for i := 0; i < b.N; i++ {
 		// generate server key
 		serverPriv, _, err := GenerateKeyPair()

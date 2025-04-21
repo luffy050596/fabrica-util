@@ -7,6 +7,8 @@ import (
 )
 
 func TestFullCommunicationFlow(t *testing.T) {
+	t.Parallel()
+
 	// generate the server key pair
 	serverKeyPair, err := GenerateKeyPair()
 	require.NoError(t, err)

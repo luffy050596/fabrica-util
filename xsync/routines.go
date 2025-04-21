@@ -26,12 +26,14 @@ func GoSafe(msg string, fn func() error, filters ...func(err error) bool) {
 				return true
 			}
 		}
+
 		return false
 	}
 
 	go func() {
 		// get routine id for logging
-		rid := RoutineId()
+		rid := RoutineID()
+
 		defer func() {
 			if r := recover(); r != nil {
 				slog.Error("goroutine panic recovered",
@@ -66,10 +68,10 @@ func RunSafe(fn func() error) (err error) {
 	return fn()
 }
 
-// RoutineId returns the current goroutine ID.
+// RoutineID returns the current goroutine ID.
 // Warning: Only for debug purposes, never use it in production.
 // The implementation is based on parsing the runtime stack.
-func RoutineId() uint64 {
+func RoutineID() uint64 {
 	buf := make([]byte, initialRoutineIDBuffer)
 	n := runtime.Stack(buf, false)
 	stack := buf[:n]
@@ -81,41 +83,48 @@ func RoutineId() uint64 {
 
 	stack = stack[len(prefix):]
 	end := bytes.IndexByte(stack, ' ')
+
 	if end == -1 {
 		return 0
 	}
 
 	var id uint64
+
 	for _, c := range stack[:end] {
 		if c < '0' || c > '9' {
 			return 0
 		}
+
 		id = id*10 + uint64(c-'0')
 	}
+
 	return id
 }
 
 // CatchErr creates an error with stack trace from a recovered panic.
 // It captures the current stack trace and formats it as part of the error message.
-func CatchErr(p interface{}) error {
-	return CatchErrWithSize(p, DefaultStackSize)
-}
-
-// CatchErrWithSize creates an error with a stack trace of the specified size from a recovered panic.
-// stackSize: the maximum size of the stack trace to capture
-func CatchErrWithSize(p interface{}, stackSize int) error {
-	var buf []byte
-	if stackSize <= DefaultStackSize {
-		// reuse default stack size
-		buf = make([]byte, DefaultStackSize)
-	} else {
-		buf = make([]byte, stackSize)
+func CatchErr(r interface{}) error {
+	if r == nil {
+		return nil
 	}
 
-	n := runtime.Stack(buf, false)
-	buf = buf[:n]
+	var err error
+	switch t := r.(type) {
+	case error:
+		err = t
+	case string:
+		err = errors.New(t)
+	default:
+		err = errors.Errorf("%v", r)
+	}
 
-	return errors.WithStack(
-		errors.Errorf("panic recovered: %v\n%s", p, buf),
-	)
+	return errors.WithStack(err)
+}
+
+// CatchErrWithSize creates an error with a custom sized stack trace from a recovered panic.
+// stackSize: the maximum size of the runtime stack in bytes (currently unused)
+func CatchErrWithSize(r interface{}, _ int) error {
+	// Implementation is the same as CatchErr to maintain backwards compatibility
+	// while keeping the function signature stable
+	return CatchErr(r)
 }

@@ -1,32 +1,30 @@
+// Package compress provides tools for compressing and decompressing data using deflate and gzip
 package compress
 
 import (
 	"bytes"
 	"compress/zlib"
+	"slices"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/go-pantheon/fabrica-util/errors"
 )
 
 var (
-	compressMutex         sync.RWMutex
-	defaultWeakCompress   = 10 << 10  // 10KB
-	defaultStrongCompress = 512 << 10 // 512KB
-	defaultWeakLevel      = zlib.BestSpeed
-	defaultStrongLevel    = zlib.DefaultCompression
+	compressMutex          sync.RWMutex
+	defaultWeakThreshold   = 10 << 10  // 10KB
+	defaultStrongThreshold = 512 << 10 // 512KB
+	defaultWeakLevel       = zlib.BestSpeed
+	defaultStrongLevel     = zlib.DefaultCompression
 )
 
 var (
-	compressBufferPool = sync.Pool{
+	bufferPool = sync.Pool{
 		New: func() interface{} {
 			return new(bytes.Buffer)
 		},
 	}
-	decompressBufferPool = sync.Pool{
-		New: func() interface{} {
-			return new(bytes.Buffer)
-		},
-	}
+	once = sync.Once{}
 )
 
 // Init init compress params
@@ -36,25 +34,28 @@ func Init(weak, strong int) {
 	compressMutex.Lock()
 	defer compressMutex.Unlock()
 
-	if weak > 0 {
-		defaultWeakCompress = weak
-	}
-	if strong > 0 {
-		defaultStrongCompress = strong
-	}
+	once.Do(func() {
+		if weak > 0 {
+			defaultWeakThreshold = weak
+		}
+
+		if strong > 0 {
+			defaultStrongThreshold = strong
+		}
+	})
 }
 
 // Compress auto select compress strategy based on data length
 // return compressed data, whether compression is performed, error info
-func Compress(data []byte) ([]byte, bool, error) {
+func Compress(data []byte) (ret []byte, didCompress bool, err error) {
 	dataLen := len(data)
 	if dataLen == 0 {
 		return []byte{}, false, nil
 	}
 
 	compressMutex.RLock()
-	weakThreshold := defaultWeakCompress
-	strongThreshold := defaultStrongCompress
+	weakThreshold := defaultWeakThreshold
+	strongThreshold := defaultStrongThreshold
 	compressMutex.RUnlock()
 
 	if dataLen < weakThreshold {
@@ -66,69 +67,67 @@ func Compress(data []byte) ([]byte, bool, error) {
 		level = defaultStrongLevel
 	}
 
-	compressed, err := zlibCompress(data, level)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "compression failed")
-	}
-	return compressed, true, nil
-}
-
-// Decompress decompress data
-func Decompress(data []byte) ([]byte, error) {
-	if len(data) == 0 {
-		return []byte{}, nil
-	}
-
-	decompressed, err := zlibDecompress(data)
-	if err != nil {
-		return nil, errors.Wrap(err, "decompression failed")
-	}
-	return decompressed, nil
-}
-
-func zlibCompress(data []byte, level int) ([]byte, error) {
 	if level < zlib.BestSpeed || level > zlib.BestCompression {
 		level = zlib.DefaultCompression
 	}
 
-	buffer := compressBufferPool.Get().(*bytes.Buffer)
+	buffer := bufferPool.Get().(*bytes.Buffer)
 	defer func() {
 		buffer.Reset()
-		compressBufferPool.Put(buffer)
+		bufferPool.Put(buffer)
 	}()
 
 	writer, err := zlib.NewWriterLevel(buffer, level)
 	if err != nil {
-		return nil, errors.Wrapf(err, "create zlib writer failed (level %d)", level)
+		return nil, false, errors.Wrapf(err, "create zlib writer failed (level %d)", level)
 	}
 
-	if _, err := writer.Write(data); err != nil {
-		writer.Close()
-		return nil, errors.Wrap(err, "write to compressor failed")
+	if _, err = writer.Write(data); err != nil {
+		return nil, false, errors.Wrap(err, "write to compressor failed")
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, errors.Wrap(err, "close compressor failed")
+	if err = writer.Close(); err != nil {
+		return nil, false, errors.Wrap(err, "close compressor failed")
 	}
 
-	return buffer.Bytes(), nil
+	ret = slices.Clone(buffer.Bytes())
+	didCompress = true
+
+	return ret, didCompress, err
 }
 
-func zlibDecompress(data []byte) ([]byte, error) {
+// Decompress decompress data
+func Decompress(data []byte) (ret []byte, err error) {
+	if len(data) == 0 {
+		return []byte{}, nil
+	}
+
 	reader, err := zlib.NewReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, errors.Wrap(err, "create zlib reader failed")
-	}
-	defer reader.Close()
+		err = errors.Wrap(err, "create zlib reader failed")
 
-	buffer := decompressBufferPool.Get().(*bytes.Buffer)
+		return nil, err
+	}
+
+	buffer := bufferPool.Get().(*bytes.Buffer)
 	defer func() {
 		buffer.Reset()
-		decompressBufferPool.Put(buffer)
+		bufferPool.Put(buffer)
 	}()
 
-	if _, err := buffer.ReadFrom(reader); err != nil {
-		return nil, errors.Wrap(err, "read from decompressor failed")
+	if _, err = buffer.ReadFrom(reader); err != nil {
+		err = errors.Wrap(err, "read from decompressor failed")
+
+		return nil, err
 	}
-	return buffer.Bytes(), nil
+
+	if err = reader.Close(); err != nil {
+		err = errors.Wrap(err, "close decompressor failed")
+
+		return nil, err
+	}
+
+	ret = slices.Clone(buffer.Bytes())
+
+	return ret, nil
 }

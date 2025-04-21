@@ -2,9 +2,9 @@ package compress
 
 import (
 	"bytes"
+	cryptorand "crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -24,7 +24,9 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestCompressDecision(t *testing.T) {
+func TestCompress(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		dataLen int
@@ -38,33 +40,50 @@ func TestCompressDecision(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			data := make([]byte, tt.dataLen)
-			_, compressed, _ := Compress(data)
+
+			_, compressed, err := Compress(data)
+			require.Nil(t, err)
+
 			assert.Equal(t, compressed, tt.want)
 		})
 	}
 }
 
-func TestCompressDecompressCycle(t *testing.T) {
+func TestCompressDecompress(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		data []byte
 	}{
 		{"Empty", []byte{}},
 		{"Small", []byte("hello world")},
-		{"Medium", bytes.Repeat([]byte{0x01}, testWeakThreshold)},
+		{"Medium", bytes.Repeat([]byte{0x01}, testWeakThreshold+1)},
 		{"Large", bytes.Repeat([]byte{0x01}, testStrongThreshold+1024)},
 		{"Random", randBytes(2 * testStrongThreshold)},
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			compressed, didCompress, err := Compress(tc.data)
+
 			require.Nil(t, err)
+
 			if didCompress {
 				decompressed, err := Decompress(compressed)
-				require.Nil(t, err)
+
+				if err != nil {
+					t.Fatalf("decompress failed: %v", err)
+				}
+
 				assert.Equal(t, tc.data, decompressed)
 			} else {
 				assert.Equal(t, tc.data, compressed)
@@ -74,21 +93,34 @@ func TestCompressDecompressCycle(t *testing.T) {
 }
 
 func TestErrorConditions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("InvalidDecompressData", func(t *testing.T) {
+		t.Parallel()
+
 		_, err := Decompress([]byte{0x00, 0x01, 0x02})
+
 		assert.NotNil(t, err)
 	})
 
 	t.Run("NilInput", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("Compress", func(t *testing.T) {
+			t.Parallel()
+
 			compressed, didCompress, err := Compress(nil)
+
 			assert.Nil(t, err)
 			assert.Equal(t, []byte{}, compressed)
 			assert.Equal(t, false, didCompress)
 		})
 
 		t.Run("Decompress", func(t *testing.T) {
+			t.Parallel()
+
 			decompressed, err := Decompress(nil)
+
 			assert.Nil(t, err)
 			assert.Equal(t, []byte{}, decompressed)
 		})
@@ -96,23 +128,24 @@ func TestErrorConditions(t *testing.T) {
 }
 
 func TestConcurrentSafety(t *testing.T) {
+	t.Parallel()
+
 	var wg sync.WaitGroup
+
 	const goroutines = 10
 
 	// Test concurrent Init and Compress
-	wg.Add(goroutines * 2)
-	for i := 0; i < goroutines; i++ {
-		go func(v int) {
-			defer wg.Done()
-			Init(v*testWeakThreshold, v*testStrongThreshold)
-		}(i)
+	wg.Add(goroutines)
 
+	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
+
 			data := randBytes(testStrongThreshold * 2)
 			_, _, _ = Compress(data)
 		}()
 	}
+
 	wg.Wait()
 }
 
@@ -129,11 +162,14 @@ func BenchmarkCompress(b *testing.B) {
 	}
 
 	for _, size := range sizes {
+		size := size
 		data := randBytes(size.size)
+
 		b.Run(size.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.SetBytes(int64(size.size))
 			b.ResetTimer()
+
 			for i := 0; i < b.N; i++ {
 				_, _, _ = Compress(data)
 			}
@@ -154,12 +190,15 @@ func BenchmarkDecompress(b *testing.B) {
 	}
 
 	for _, size := range sizes {
+		size := size
 		data := randBytes(size.size)
 		compressed, _, _ := Compress(data)
+
 		b.Run(size.name, func(b *testing.B) {
 			b.ReportAllocs()
 			b.SetBytes(int64(len(compressed)))
 			b.ResetTimer()
+
 			for i := 0; i < b.N; i++ {
 				_, _ = Decompress(compressed)
 			}
@@ -169,11 +208,19 @@ func BenchmarkDecompress(b *testing.B) {
 
 func randBytes(n int) []byte {
 	data := make([]byte, n)
-	_, _ = rand.Read(data) // 对于测试来说，错误可以忽略
+
+	_, err := cryptorand.Read(data)
+
+	if err != nil {
+		panic(err)
+	}
+
 	return data
 }
 
 func TestCompressionEfficiency(t *testing.T) {
+	t.Parallel()
+
 	type testData struct {
 		ID      int64
 		Name    string
@@ -183,75 +230,91 @@ func TestCompressionEfficiency(t *testing.T) {
 	}
 
 	generateData := func(sizeKB int) []byte {
-		data := make([]byte, 0, sizeKB<<10)
+		l := sizeKB
+		data := make([]byte, 0, l)
 		buf := bytes.NewBuffer(data)
 
-		// 生成结构化数据
-		for i := 0; buf.Len() < sizeKB<<10; i++ {
+		for i := 0; buf.Len() < l; i++ {
 			item := testData{
 				ID:      int64(i),
 				Name:    fmt.Sprintf("item-%d", i),
 				Tags:    []string{"tag1", "tag2", "tag3"},
-				Value:   rand.Float64(),
+				Value:   cryptoRandFloat64(),
 				Enabled: i%2 == 0,
 			}
-			// 使用JSON模拟proto序列化
+
 			b, _ := json.Marshal(item)
 			buf.Write(b)
 		}
-		return buf.Bytes()[:sizeKB<<10] // 精确控制大小
+
+		return buf.Bytes()[:l]
 	}
 
 	testCases := []struct {
 		name         string
-		sizeKB       int
-		wantMinRatio float64 // 预期的最低压缩率
+		size         int
+		wantMinRatio float64 // min compression ratio
 	}{
-		{"SmallData(10KB)", 12, 0.3},
-		{"MediumData(100KB)", 100, 0.2},
-		{"LargeData(1MB)", 1024, 0.2},
+		{"SmallData", testWeakThreshold, 0.3},
+		{"MediumData", testStrongThreshold << 2, 0.2},
+		{"LargeData", testStrongThreshold << 4, 0.2},
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			data := generateData(tc.sizeKB)
+			t.Parallel()
+
+			data := generateData(tc.size)
 			origSize := len(data)
 
-			// 压缩测试
 			startCompress := time.Now()
 			compressed, didCompress, err := Compress(data)
 			compressTime := time.Since(startCompress)
+
 			require.NoError(t, err)
 			require.True(t, didCompress)
 
-			// 解压测试
 			startDecompress := time.Now()
 			decompressed, err := Decompress(compressed)
 			decompressTime := time.Since(startDecompress)
-			require.NoError(t, err)
 
-			// 验证数据完整性
+			require.NoError(t, err)
 			assert.Equal(t, data, decompressed)
 
-			// 计算指标
 			compressedSize := len(compressed)
 			ratio := float64(compressedSize) / float64(origSize)
 
-			// 输出性能报告
-			t.Logf("Original size: %d KB", origSize>>10)
-			t.Logf("Compressed size: %d KB (%.2f%%)",
-				compressedSize>>10, ratio*100)
-			t.Logf("Compress time: %s (%.2f MB/s)",
-				compressTime,
-				float64(origSize)/(compressTime.Seconds()*(1<<20)))
-			t.Logf("Decompress time: %s (%.2f MB/s)",
-				decompressTime,
-				float64(origSize)/(decompressTime.Seconds()*(1<<20)))
+			t.Logf("%d KB -> %d KB (%.2f%%), ct: %.2fs (%.2f MB/s), dct: %.2fs (%.2f MB/s)",
+				origSize>>10, compressedSize>>10, ratio*100,
+				compressTime.Seconds(), float64(origSize)/(compressTime.Seconds()*(1<<20)),
+				decompressTime.Seconds(), float64(origSize)/(decompressTime.Seconds()*(1<<20)))
 
-			// 验证压缩率
 			assert.Less(t, ratio, tc.wantMinRatio,
 				"compression ratio too high, expected < %.2f, got %.2f",
 				tc.wantMinRatio, ratio)
 		})
 	}
+}
+
+// cryptoRandFloat64 returns a cryptographically secure random float64 value between 0 and 1
+func cryptoRandFloat64() float64 {
+	var buf [8]byte
+
+	_, err := cryptorand.Read(buf[:])
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Convert to a uint64 and scale to the range [0,1)
+	val := float64(byteOrder8(buf)) / float64(1<<64)
+
+	return val
+}
+
+// byteOrder8 converts an 8-byte array to uint64
+func byteOrder8(b [8]byte) uint64 {
+	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 |
+		uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])
 }

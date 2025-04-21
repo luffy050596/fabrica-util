@@ -7,10 +7,12 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/go-pantheon/fabrica-util/errors"
 	"github.com/spaolacci/murmur3"
 )
 
 const (
+	// DefaultVirtualSpots is the default number of virtual spots per node (160)
 	DefaultVirtualSpots = 160
 )
 
@@ -26,6 +28,7 @@ func (r ringNodes) Len() int           { return len(r) }
 func (r ringNodes) Less(i, j int) bool { return r[i].hash < r[j].hash }
 func (r ringNodes) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
+// HashRing implements a string-based consistent hash ring
 type HashRing struct {
 	sync.RWMutex
 	virtualSpots int
@@ -33,6 +36,7 @@ type HashRing struct {
 	hashCache    sync.Pool
 }
 
+// NewRing creates a new string-based consistent hash ring with the specified number of virtual spots
 func NewRing(virtualSpots int) *HashRing {
 	if virtualSpots <= 0 {
 		virtualSpots = DefaultVirtualSpots
@@ -49,7 +53,7 @@ func NewRing(virtualSpots int) *HashRing {
 }
 
 // AddNode add node and sort automatically
-func (h *HashRing) AddNode(nodeName string) {
+func (h *HashRing) AddNode(nodeName string) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -57,10 +61,17 @@ func (h *HashRing) AddNode(nodeName string) {
 	defer h.hashCache.Put(hash)
 
 	nodes := make(ringNodes, 0, h.virtualSpots)
+
 	for i := 0; i < h.virtualSpots; i++ {
 		key := nodeName + ":" + strconv.Itoa(i)
+
 		hash.Reset()
-		hash.Write([]byte(key))
+
+		_, err := hash.Write([]byte(key))
+		if err != nil {
+			return errors.Wrap(err, "write to hasher failed")
+		}
+
 		hashBytes := hash.Sum(nil)
 
 		// use binary package to read uint32 more efficiently
@@ -73,21 +84,28 @@ func (h *HashRing) AddNode(nodeName string) {
 
 	h.nodes = append(h.nodes, nodes...)
 	sort.Sort(h.nodes)
+
+	return nil
 }
 
+// RemoveNode removes a node with the given name from the hash ring
 func (h *HashRing) RemoveNode(nodeName string) {
 	h.Lock()
 	defer h.Unlock()
 
 	filtered := h.nodes[:0]
+
 	for _, n := range h.nodes {
 		if n.nodeName != nodeName {
 			filtered = append(filtered, n)
 		}
 	}
+
 	h.nodes = filtered
 }
 
+// GetNode returns the node name for the given key
+// It uses consistent hashing to find the appropriate node
 func (h *HashRing) GetNode(key string) (string, bool) {
 	h.RLock()
 	defer h.RUnlock()

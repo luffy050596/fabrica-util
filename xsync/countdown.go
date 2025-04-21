@@ -1,3 +1,4 @@
+// Package xsync provides extended synchronization primitives and utilities
 package xsync
 
 import (
@@ -6,6 +7,7 @@ import (
 	"time"
 )
 
+// ErrCountdownTimerExpired is returned when a countdown timer has expired
 var ErrCountdownTimerExpired = errors.New("countdown timer expired")
 
 // CountdownStopper the interface for countdown stoppers
@@ -33,6 +35,7 @@ func NewCountdownStopper() CountdownStopper {
 func (c *countdownTimer) ExpiryTime() time.Time {
 	c.RLock()
 	defer c.RUnlock()
+
 	return c.expiryTime
 }
 

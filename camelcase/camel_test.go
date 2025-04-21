@@ -4,9 +4,13 @@ import (
 	"testing"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToUpperCamel(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input string
@@ -27,14 +31,17 @@ func TestToUpperCamel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ToUpperCamel(tt.input); got != tt.want {
-				t.Errorf("ToUpperCamel(%q) = %q, want %q", tt.input, got, tt.want)
-			}
+			t.Parallel()
+
+			got := ToUpperCamel(tt.input)
+			assert.Equal(t, got, tt.want)
 		})
 	}
 }
 
 func TestToLowerCamel(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input string
@@ -51,14 +58,17 @@ func TestToLowerCamel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ToLowerCamel(tt.input); got != tt.want {
-				t.Errorf("ToLowerCamel(%q) = %q, want %q", tt.input, got, tt.want)
-			}
+			t.Parallel()
+
+			got := ToLowerCamel(tt.input)
+			assert.Equal(t, got, tt.want)
 		})
 	}
 }
 
 func TestToUnderScore(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input string
@@ -78,30 +88,36 @@ func TestToUnderScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ToUnderScore(tt.input); got != tt.want {
-				t.Errorf("ToUnderScore(%q) = %q, want %q", tt.input, got, tt.want)
-			}
+			t.Parallel()
+
+			got := ToUnderScore(tt.input)
+			assert.Equal(t, got, tt.want)
 		})
 	}
 }
 
 func TestEdgeCases(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Multiple underscores", func(t *testing.T) {
-		if got := ToUpperCamel("hello__world"); got != "HelloWorld" {
-			t.Errorf("ToUpperCamel('hello__world') = %q, want 'HelloWorld'", got)
-		}
+		t.Parallel()
+
+		got := ToUpperCamel("hello__world")
+		assert.Equal(t, got, "HelloWorld")
 	})
 
 	t.Run("Leading underscore", func(t *testing.T) {
-		if got := ToUpperCamel("_hello_world"); got != "HelloWorld" {
-			t.Errorf("ToUpperCamel('_hello_world') = %q, want 'HelloWorld'", got)
-		}
+		t.Parallel()
+
+		got := ToUpperCamel("_hello_world")
+		assert.Equal(t, got, "HelloWorld")
 	})
 
 	t.Run("All letters uppercase", func(t *testing.T) {
-		if got := ToUnderScore("HELLOWORLD"); got != "helloworld" {
-			t.Errorf("ToUnderScore('HELLOWORLD') = %q, want 'helloworld'", got)
-		}
+		t.Parallel()
+
+		got := ToUnderScore("HELLOWORLD")
+		assert.Equal(t, got, "helloworld")
 	})
 }
 
@@ -140,17 +156,11 @@ func FuzzCamelCase(f *testing.F) {
 		upper := ToUpperCamel(s)
 		roundtrip := ToUnderScore(upper)
 		upper2 := ToUpperCamel(roundtrip)
-
-		if upper != upper2 {
-			t.Errorf("Roundtrip failed: original(%q) -> upper(%q) -> underscore(%q) -> upper2(%q)",
-				s, upper, roundtrip, upper2)
-		}
+		assert.Equal(t, upper, upper2)
 
 		// Check all letters are valid
 		for _, r := range upper {
-			if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-				t.Fatalf("Invalid character in result: %q", r)
-			}
+			assert.True(t, unicode.IsLetter(r) || unicode.IsDigit(r))
 		}
 	})
 }

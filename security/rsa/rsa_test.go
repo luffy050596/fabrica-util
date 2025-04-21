@@ -16,11 +16,15 @@ import (
 )
 
 func TestGenCurve25519Key(t *testing.T) {
+	t.Parallel()
+
 	aKey, bKey := genCurve25519Key()
 	assert.Equal(t, aKey, bKey)
 }
 
 func TestRSAEncryptDecrypt(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		keyBits   int
@@ -40,6 +44,8 @@ func TestRSAEncryptDecrypt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, pri, pubBytes, _, err := generateTestKeyPair(tt.keyBits)
 			assert.NoError(t, err)
 
@@ -60,6 +66,7 @@ func TestRSAEncryptDecrypt(t *testing.T) {
 }
 
 func TestRSAKeyMarshaling(t *testing.T) {
+	t.Parallel()
 	// Generate test key pair
 	_, pri, pubBytes, priBytes, err := generateTestKeyPair(4096)
 	assert.NoError(t, err)
@@ -93,6 +100,8 @@ func TestRSAKeyMarshaling(t *testing.T) {
 }
 
 func TestRSASignVerify(t *testing.T) {
+	t.Parallel()
+
 	_, pri, _, _, err := generateTestKeyPair(2048)
 	assert.NoError(t, err)
 
@@ -117,6 +126,8 @@ func TestRSASignVerify(t *testing.T) {
 }
 
 func TestCurve25519KeyExchange(t *testing.T) {
+	t.Parallel()
+
 	aKey, bKey := genCurve25519Key()
 	assert.NotEmpty(t, aKey)
 	assert.NotEmpty(t, bKey)
@@ -194,6 +205,7 @@ func generateTestKeyPair(bits int) (*rsa.PublicKey, *rsa.PrivateKey, []byte, []b
 
 	pub := &pri.PublicKey
 	pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -207,6 +219,8 @@ func generateTestKeyPair(bits int) (*rsa.PublicKey, *rsa.PrivateKey, []byte, []b
 }
 
 func TestGenerateKeyPair(t *testing.T) {
+	t.Parallel()
+
 	pub, pri, pubBytes, priBytes, err := generateTestKeyPair(4096)
 	assert.NoError(t, err)
 	assert.NotNil(t, pub)
