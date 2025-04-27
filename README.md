@@ -2,6 +2,8 @@
 
 Fabrica Util is a comprehensive utility library for the go-pantheon ecosystem, providing common functionality for all go-pantheon components. This library encapsulates reusable code patterns, algorithms, and helper functions to ensure consistency and avoid duplication in the game server microservices infrastructure.
 
+For more, please check out: [deepwiki/go-pantheon/fabrica-util](https://deepwiki.com/go-pantheon/fabrica-util)
+
 ## go-pantheon Ecosystem
 
 **go-pantheon** is an out-of-the-box game server framework providing high-performance, highly available game server cluster solutions based on microservices architecture based on [go-kratos](https://github.com/go-kratos/kratos). Fabrica Util serves as the foundational utility library that supports the core components:
