@@ -2,9 +2,10 @@
 package xsync
 
 import (
-	"errors"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // ErrCountdownTimerExpired is returned when a countdown timer has expired
