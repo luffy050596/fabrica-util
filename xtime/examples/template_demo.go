@@ -25,7 +25,7 @@ FormatWeekday:  Monday
 Language: zh-CN
 ---
 FormatDateTime: 2023年十二月25日 星期一 15:30:45
-FormatDate:     2023年十二月月25日 星期一
+FormatDate:     2023年十二月25日 星期一
 FormatTime:     15:30:45
 FormatMonth:    十二月
 FormatWeekday:  星期一
@@ -33,7 +33,7 @@ FormatWeekday:  星期一
 Language: zh-TW
 ---
 FormatDateTime: 2023年十二月25日 星期一 15:30:45
-FormatDate:     2023年十二月月25日 星期一
+FormatDate:     2023年十二月25日 星期一
 FormatTime:     15:30:45
 FormatMonth:    十二月
 FormatWeekday:  星期一
@@ -49,7 +49,7 @@ FormatWeekday:  月曜日
 Language: kr
 ---
 FormatDateTime: 2023년 십이월 25일 월요일 15:30:45
-FormatDate:     2023년 십이월월 25일 월요일
+FormatDate:     2023년 십이월 25일 월요일
 FormatTime:     15:30:45
 FormatMonth:    십이월
 FormatWeekday:  월요일

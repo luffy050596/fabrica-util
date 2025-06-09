@@ -9,12 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:paralleltest // modifies global locale state
 func TestInit(t *testing.T) {
 	t.Parallel()
 
 	t.Run("successful init", func(t *testing.T) {
-		t.Parallel()
-
 		err := Init(Config{Language: "zh-CN", Timezone: "UTC"})
 		require.NoError(t, err)
 		// Test that GetLocation returns a valid location
