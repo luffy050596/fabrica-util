@@ -5,152 +5,150 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/pkg/errors"
+	"github.com/go-pantheon/fabrica-util/errors"
 	"go.uber.org/atomic"
 )
 
 // ErrGroupStopping is returned when an ErrGroup is in the process of stopping
-var ErrGroupStopping = errors.New("ErrGroup is stopping") // Stoppable is stopping signal
+var (
+	ErrGroupStopping = errors.New("ErrGroup is stopping")
+	ErrStopTimeout   = errors.New("stop function timed out")
+)
 
 // Stoppable lifecycle stop manager interface
 type Stoppable interface {
 	WaitStoppable
 	StopTriggerable
 
-	// DoStop execute stop
-	DoStop(f func())
-	// Stopping listen stop is started
+	// DoStop execute stop function with timeout
+	DoStop(f func()) error
+	// Stopping returns channel that's closed when stopping starts
 	Stopping() <-chan struct{}
-	// IsStopping check stop is started
+	// IsStopping checks if stop process has started
 	IsStopping() bool
 }
 
 // StopTriggerable trigger stop interface
 type StopTriggerable interface {
-	// TriggerStop trigger stop
+	// TriggerStop triggers the stop process
 	TriggerStop()
-	// StopTriggered listen stop is triggered
+	// StopTriggered returns channel that's closed when stop is triggered
 	StopTriggered() <-chan struct{}
+	// IsStopTriggered checks if stop has been triggered
+	IsStopTriggered() bool
 }
 
-// WaitStoppable wait stop completed
+// WaitStoppable wait stop completed interface
 type WaitStoppable interface {
+	// WaitStopped blocks until stopping is complete
 	WaitStopped()
 }
 
 var _ Stoppable = (*Stopper)(nil)
 
-// StopperOption is a function that configures a Stopper
-type StopperOption func(*Stopper)
-
-// WithLog sets a logger for the Stopper
-func WithLog(log *log.Helper) StopperOption {
-	return func(s *Stopper) {
-		s.log = log
-	}
-}
-
-// Stopper implements Stoppable interface
+// Stopper implements graceful shutdown with timeout
 type Stopper struct {
-	log *log.Helper
+	// State management using atomic operations for better performance
+	state *atomic.Int32 // 0=idle, 1=triggered, 2=stopping, 3=stopped
 
-	_triggerLock  sync.Mutex
-	stopTrigger   chan struct{} // the notification of stop triggered
-	stopTriggered *atomic.Bool  // stop is triggered
+	// Channels for notifications
+	stopTrigger  chan struct{} // closed when stop is triggered
+	stoppingChan chan struct{} // closed when stopping starts
+	stoppedChan  chan struct{} // closed when stopped
 
-	_stoppingLock sync.Mutex
-	stoppingChan  chan struct{} // the notification of starting to stop
-	isStopping    *atomic.Bool  // stop is started
+	// Configuration
+	stopTimeout time.Duration
 
-	stoppedChan chan struct{} // the notification of stopping completed
-	stopTimeout time.Duration // the timeout of stop
+	// Locks for state transitions
+	triggerLock  sync.Mutex
+	stoppingLock sync.Mutex
 }
+
+const (
+	stateIdle = iota
+	stateTriggered
+	stateStopping
+	stateStopped
+)
 
 // NewStopper creates a new Stopper with the given timeout and options
-func NewStopper(stopTimeout time.Duration, opts ...StopperOption) *Stopper {
-	s := &Stopper{
-		stopTrigger:   make(chan struct{}),
-		stopTriggered: atomic.NewBool(false),
-
+func NewStopper(stopTimeout time.Duration) *Stopper {
+	return &Stopper{
+		state:        atomic.NewInt32(stateIdle),
+		stopTrigger:  make(chan struct{}),
 		stoppingChan: make(chan struct{}),
-		isStopping:   atomic.NewBool(false),
-
-		stoppedChan: make(chan struct{}),
-		stopTimeout: stopTimeout,
+		stoppedChan:  make(chan struct{}),
+		stopTimeout:  stopTimeout,
 	}
-
-	for _, opt := range opts {
-		opt(s)
-	}
-
-	return s
 }
 
-// DoStop executes the stop function if the stopper is not already stopping
-func (s *Stopper) DoStop(f func()) {
-	if s.IsStopping() {
-		return
+// DoStop executes the stop function with timeout protection
+func (s *Stopper) DoStop(f func()) error {
+	// Transition to stopping state
+	if !s.transitionToStopping() {
+		return nil // Already stopping or stopped
 	}
 
-	func() {
-		s._stoppingLock.Lock()
-		defer s._stoppingLock.Unlock()
+	defer s.transitionToStopped()
 
-		if s.IsStopping() {
-			return
-		}
+	if s.stopTimeout <= 0 {
+		f()
+		return nil
+	}
 
-		close(s.stoppingChan)
-		s.isStopping.Store(true)
-	}()
-
-	defer close(s.stoppedChan)
-
+	// Execute with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), s.stopTimeout)
 	defer cancel()
 
 	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		f()
-		close(done)
 	}()
 
 	select {
 	case <-done:
+		return nil
 	case <-ctx.Done():
-		s.log.Error("Stopper stop timed out after timeout")
+		return ErrStopTimeout
 	}
 }
 
-// TriggerStop triggers the stop process if it hasn't been triggered already
+// TriggerStop triggers the stop process (idempotent)
 func (s *Stopper) TriggerStop() {
-	if s.isStopTriggered() {
+	if s.IsStopTriggered() {
 		return
 	}
 
-	s._triggerLock.Lock()
-	defer s._triggerLock.Unlock()
+	s.triggerLock.Lock()
+	defer s.triggerLock.Unlock()
 
-	if s.isStopTriggered() {
+	// Double-check pattern
+	if s.IsStopTriggered() {
 		return
 	}
 
-	close(s.stopTrigger)
-	s.stopTriggered.Store(true)
+	if s.state.CompareAndSwap(stateIdle, stateTriggered) {
+		close(s.stopTrigger)
+	}
 }
 
-// StopTriggered returns a channel that is closed when stop is triggered
+// StopTriggered returns a channel that's closed when stop is triggered
 func (s *Stopper) StopTriggered() <-chan struct{} {
 	return s.stopTrigger
 }
 
-// IsStopping returns true if the stopper is in the process of stopping
-func (s *Stopper) IsStopping() bool {
-	return s.isStopping.Load()
+// IsStopTriggered checks if stop has been triggered
+func (s *Stopper) IsStopTriggered() bool {
+	return s.state.Load() >= stateTriggered
 }
 
-// Stopping returns a channel that is closed when stopping has started
+// IsStopping checks if the stop process has started
+func (s *Stopper) IsStopping() bool {
+	return s.state.Load() >= stateStopping
+}
+
+// Stopping returns a channel that's closed when stopping starts
 func (s *Stopper) Stopping() <-chan struct{} {
 	return s.stoppingChan
 }
@@ -160,6 +158,27 @@ func (s *Stopper) WaitStopped() {
 	<-s.stoppedChan
 }
 
-func (s *Stopper) isStopTriggered() bool {
-	return s.stopTriggered.Load()
+// transitionToStopping attempts to transition to stopping state
+func (s *Stopper) transitionToStopping() bool {
+	s.stoppingLock.Lock()
+	defer s.stoppingLock.Unlock()
+
+	currentState := s.state.Load()
+	if currentState >= stateStopping {
+		return false // Already stopping or stopped
+	}
+
+	if s.state.CompareAndSwap(currentState, stateStopping) {
+		close(s.stoppingChan)
+		return true
+	}
+
+	return false
+}
+
+// transitionToStopped transitions to stopped state
+func (s *Stopper) transitionToStopped() {
+	if s.state.CompareAndSwap(stateStopping, stateStopped) {
+		close(s.stoppedChan)
+	}
 }

@@ -11,18 +11,24 @@ import (
 // ErrDelayerExpired is returned when a delayer has expired
 var ErrDelayerExpired = errors.New("delayer expired")
 
-// Delayer the interface for delayers
-type Delayer interface {
-	ExpiryTime() time.Time
-	SetExpiryTime(time.Time)
-	Reset()
+// Delayable the interface for delayers
+type Delayable interface {
+	WorkerDelayable
+
 	Tick() chan struct{}
 	Stop()
 	IsExpired() bool
 	TimeRemaining() time.Duration
 }
 
-var _ Delayer = (*delayer)(nil)
+// WorkerDelayable the interface for worker delayers
+type WorkerDelayable interface {
+	ExpiryTime() time.Time
+	SetExpiryTime(time.Time)
+	Reset()
+}
+
+var _ Delayable = (*delayer)(nil)
 
 // delayer implements the delayer
 type delayer struct {
@@ -35,7 +41,7 @@ type delayer struct {
 }
 
 // NewDelayer creates a new delayer
-func NewDelayer() Delayer {
+func NewDelayer() Delayable {
 	return &delayer{
 		expiryTime: time.Time{},
 		tick:       make(chan struct{}, 1), // buffered to prevent blocking
