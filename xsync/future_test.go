@@ -10,6 +10,8 @@ import (
 )
 
 func TestFuture_Basic(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 
 	assert.False(t, f.IsComplete())
@@ -26,6 +28,8 @@ func TestFuture_Basic(t *testing.T) {
 }
 
 func TestFuture_Error(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 	expectedErr := errors.New("test error")
 
@@ -37,6 +41,8 @@ func TestFuture_Error(t *testing.T) {
 }
 
 func TestFuture_Cancel(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 
 	f.Cancel()
@@ -47,6 +53,8 @@ func TestFuture_Cancel(t *testing.T) {
 }
 
 func TestFuture_Timeout(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 
 	// Test timeout
@@ -56,6 +64,8 @@ func TestFuture_Timeout(t *testing.T) {
 }
 
 func TestFuture_Context(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -68,6 +78,8 @@ func TestFuture_Context(t *testing.T) {
 }
 
 func TestFuture_Then(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 
 	// Create a chained future
@@ -85,6 +97,8 @@ func TestFuture_Then(t *testing.T) {
 }
 
 func TestFuture_DoubleComplete(t *testing.T) {
+	t.Parallel()
+
 	f := NewFuture[int]()
 
 	// First completion

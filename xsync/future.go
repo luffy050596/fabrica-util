@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	// ErrFutureCancelled is returned when a Future is cancelled
 	ErrFutureCancelled = errors.New("future was cancelled")
 )
 

@@ -15,11 +15,13 @@ var (
 	ErrInvalidPadding     = errors.New("invalid PKCS7 padding")
 )
 
+// AESCipher represents an AES cipher with a key and block
 type AESCipher struct {
 	key   []byte
 	block cipher.Block
 }
 
+// NewAESCipher creates a new AESCipher with the given key
 func NewAESCipher(key []byte) (*AESCipher, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {

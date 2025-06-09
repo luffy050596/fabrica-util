@@ -19,10 +19,11 @@ func (t *testSizeReporter) Size() int {
 	if t.size > 0 {
 		return t.size
 	}
+
 	return len(t.data)
 }
 
-func NewTestSizeReporter(size int) *testSizeReporter {
+func newTestSizeReporter(size int) *testSizeReporter {
 	return &testSizeReporter{
 		data: make([]byte, size), // pre-allocate some capacity
 		size: size,
@@ -33,6 +34,7 @@ func (t *testSizeReporter) Init(n int) {
 	if n <= 0 {
 		return
 	}
+
 	t.data = make([]byte, n)
 	t.size = n
 }
@@ -47,7 +49,7 @@ func TestMultiLayerPool_Basic(t *testing.T) {
 
 	pool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(64) // create a small object
+			return newTestSizeReporter(64) // create a small object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -75,13 +77,13 @@ func TestMultiLayerPool_Basic(t *testing.T) {
 func TestMultiLayerPool_WithSizeOption(t *testing.T) {
 	t.Parallel()
 
-	small := NewTestSizeReporter(64)   // small object
-	medium := NewTestSizeReporter(200) // medium object
-	large := NewTestSizeReporter(512)  // large object
+	small := newTestSizeReporter(64)   // small object
+	medium := newTestSizeReporter(200) // medium object
+	large := newTestSizeReporter(512)  // large object
 
 	pool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(0) // create an empty object
+			return newTestSizeReporter(0) // create an empty object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -122,7 +124,7 @@ func TestMultiLayerPool_DifferentSizes(t *testing.T) {
 
 	pool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(0) // create an empty object
+			return newTestSizeReporter(0) // create an empty object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -130,9 +132,9 @@ func TestMultiLayerPool_DifferentSizes(t *testing.T) {
 		WithThresholds([]int{128, 256}),
 	)
 
-	small := NewTestSizeReporter(64)   // less than the first threshold
-	medium := NewTestSizeReporter(200) // less than the second threshold but greater than the first
-	large := NewTestSizeReporter(512)  // greater than all thresholds
+	small := newTestSizeReporter(64)   // less than the first threshold
+	medium := newTestSizeReporter(200) // less than the second threshold but greater than the first
+	large := newTestSizeReporter(512)  // greater than all thresholds
 
 	pool.Put(small)
 	pool.Put(medium)
@@ -151,11 +153,12 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 
 	// record initial memory usage
 	var initialStats runtime.MemStats
+
 	runtime.ReadMemStats(&initialStats)
 
 	pool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(0) // create an empty object
+			return newTestSizeReporter(0) // create an empty object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -164,6 +167,7 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 	)
 
 	var wg sync.WaitGroup
+
 	objCount := 10000
 	concurrency := 10
 
@@ -177,8 +181,7 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 				var wrapper *testSizeReporter
 
 				// set object properties and size based on index
-				objSize := i % 3
-				switch objSize {
+				switch i % 3 {
 				case 0: // small object
 					wrapper = pool.Get(256).(*testSizeReporter)
 					wrapper.data = make([]byte, 256)
@@ -228,7 +231,7 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 func BenchmarkMultiLayerPool(b *testing.B) {
 	pool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(0) // create an empty object
+			return newTestSizeReporter(0) // create an empty object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -241,6 +244,7 @@ func BenchmarkMultiLayerPool(b *testing.B) {
 			obj := pool.Get(64).(*testSizeReporter)
 			obj.data = make([]byte, 64)
 			obj.data[0] = byte(i)
+
 			pool.Put(obj)
 		}
 	})
@@ -279,6 +283,7 @@ func BenchmarkMultiLayerPool(b *testing.B) {
 				// simple modification to make the object have different sizes
 				obj.data = make([]byte, 128)
 				obj.size = 128
+
 				pool.Put(obj)
 			}
 		})
@@ -287,16 +292,16 @@ func BenchmarkMultiLayerPool(b *testing.B) {
 	b.Run("ParallelWithSize", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
-			for pb.Next() {
 
+			for pb.Next() {
 				size := 256 * (1 << (i % 3)) // 256, 512, 1024
 				obj := pool.Get(size).(*testSizeReporter)
-
-				i++
 
 				obj.data = make([]byte, size)
 				obj.size = size
 				pool.Put(obj)
+
+				i++
 			}
 		})
 	})
@@ -316,7 +321,6 @@ func BenchmarkMultiLayerPool(b *testing.B) {
 			}
 
 			pool.Put(obj)
-
 		}
 	})
 }
@@ -324,13 +328,13 @@ func BenchmarkMultiLayerPool(b *testing.B) {
 func BenchmarkCompareWithStandardPool(b *testing.B) {
 	standardPool := &sync.Pool{
 		New: func() any {
-			return NewTestSizeReporter(0)
+			return newTestSizeReporter(0)
 		},
 	}
 
 	multiPool := NewMultiLayerPool(
 		func() Resetable {
-			return NewTestSizeReporter(0) // create an empty object
+			return newTestSizeReporter(0) // create an empty object
 		},
 		func(obj Resetable) int {
 			return obj.(*testSizeReporter).Size()
@@ -342,22 +346,23 @@ func BenchmarkCompareWithStandardPool(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			switch i % 8 {
 			case 0:
-				NewTestSizeReporter(63)
+				newTestSizeReporter(63)
 			case 1:
-				NewTestSizeReporter(255)
+				newTestSizeReporter(255)
 			case 2:
-				NewTestSizeReporter(1023)
+				newTestSizeReporter(1023)
 			case 3:
-				NewTestSizeReporter(2047)
+				newTestSizeReporter(2047)
 			case 4:
-				NewTestSizeReporter(4095)
+				newTestSizeReporter(4095)
 			case 5:
-				NewTestSizeReporter(8191)
+				newTestSizeReporter(8191)
 			case 6:
-				NewTestSizeReporter(16383)
+				newTestSizeReporter(16383)
 			case 7:
-				NewTestSizeReporter(32767)
+				newTestSizeReporter(32767)
 			}
+
 			if i%10000 == 0 {
 				runtime.GC()
 			}
@@ -366,6 +371,7 @@ func BenchmarkCompareWithStandardPool(b *testing.B) {
 
 	b.Run("StandardPool", func(b *testing.B) {
 		obj := standardPool.Get().(*testSizeReporter)
+
 		for i := 0; i < b.N; i++ {
 			switch i % 8 {
 			case 0:
@@ -385,6 +391,7 @@ func BenchmarkCompareWithStandardPool(b *testing.B) {
 			case 7:
 				obj.Init(32767)
 			}
+
 			obj.Reset()
 			standardPool.Put(obj)
 		}
@@ -420,6 +427,7 @@ func BenchmarkCompareWithStandardPool(b *testing.B) {
 				obj = multiPool.Get(32767).(*testSizeReporter)
 				obj.Init(32767)
 			}
+
 			obj.Reset()
 			multiPool.Put(obj)
 		}
