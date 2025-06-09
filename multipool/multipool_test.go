@@ -213,6 +213,7 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 
 	// check current memory usage
 	var finalStats runtime.MemStats
+
 	runtime.ReadMemStats(&finalStats)
 
 	// output memory usage statistics and pool statistics

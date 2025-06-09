@@ -15,27 +15,27 @@ var (
 	ErrInvalidPadding     = errors.New("invalid PKCS7 padding")
 )
 
-// AESCipher represents an AES cipher with a key and block
-type AESCipher struct {
+// Cipher represents an AES cipher with a key and block
+type Cipher struct {
 	key   []byte
 	block cipher.Block
 }
 
 // NewAESCipher creates a new AESCipher with the given key
-func NewAESCipher(key []byte) (*AESCipher, error) {
+func NewAESCipher(key []byte) (*Cipher, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create AES cipher")
 	}
 
-	return &AESCipher{
+	return &Cipher{
 		key:   key,
 		block: block,
 	}, nil
 }
 
 // Encrypt encrypts plaintext using AES-CBC with PKCS7 padding
-func (c *AESCipher) Encrypt(data []byte) ([]byte, error) {
+func (c *Cipher) Encrypt(data []byte) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, errors.New("plaintext cannot be empty")
 	}
@@ -53,7 +53,7 @@ func (c *AESCipher) Encrypt(data []byte) ([]byte, error) {
 }
 
 // Decrypt decrypts ciphertext using AES-CBC with PKCS7 padding
-func (c *AESCipher) Decrypt(data []byte) ([]byte, error) {
+func (c *Cipher) Decrypt(data []byte) ([]byte, error) {
 	if len(data) < aes.BlockSize {
 		return nil, ErrCipherTextTooShort
 	}

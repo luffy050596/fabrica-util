@@ -1,3 +1,4 @@
+// Package multipool provides a multi-level object pool based on object size
 package multipool
 
 import (
@@ -91,6 +92,7 @@ func (mp *MultiLayerPool) Get(size int) Resetable {
 	}
 
 	mp.misses[poolIndex].Add(1)
+
 	return mp.newFunc()
 }
 
@@ -116,6 +118,7 @@ func (mp *MultiLayerPool) getPoolIndex(size int) int {
 			return i
 		}
 	}
+
 	return len(mp.thresholds)
 }
 

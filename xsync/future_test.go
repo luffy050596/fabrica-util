@@ -111,6 +111,7 @@ func TestFuture_DoubleComplete(t *testing.T) {
 	if err != nil {
 		t.Errorf("Get() returned unexpected error: %v", err)
 	}
+
 	if value != 42 {
 		t.Errorf("Get() returned %v, want 42", value)
 	}
