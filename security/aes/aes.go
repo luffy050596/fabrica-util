@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -16,62 +15,52 @@ var (
 	ErrInvalidPadding     = errors.New("invalid PKCS7 padding")
 )
 
-// MustEncrypt encrypts data or panics if an error occurs
-func MustEncrypt(data []byte, key []byte) []byte {
-	out, err := Encrypt(data, key)
-	if err != nil {
-		panic(fmt.Sprintf("aes encrypt error: %v", err))
-	}
-
-	return out
+type AESCipher struct {
+	key   []byte
+	block cipher.Block
 }
 
-// Encrypt encrypts plaintext using AES-CBC with PKCS7 padding
-func Encrypt(org []byte, key []byte) ([]byte, error) {
-	if len(key) == 0 {
-		return nil, errors.New("encryption key cannot be empty")
-	}
-
-	if len(org) == 0 {
-		return nil, errors.New("plaintext cannot be empty")
-	}
-
-	// padding
-	padded := pkcs7Padding(org, aes.BlockSize)
-
-	// create cipher
+func NewAESCipher(key []byte) (*AESCipher, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create AES cipher")
 	}
 
+	return &AESCipher{
+		key:   key,
+		block: block,
+	}, nil
+}
+
+// Encrypt encrypts plaintext using AES-CBC with PKCS7 padding
+func (c *AESCipher) Encrypt(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, errors.New("plaintext cannot be empty")
+	}
+
+	padded := pkcs7Padding(data, aes.BlockSize)
+
 	ser := make([]byte, aes.BlockSize+len(padded))
 	iv := ser[:aes.BlockSize]
-	copy(iv, key[:aes.BlockSize])
+	copy(iv, c.key[:aes.BlockSize])
 
-	// encrypt
-	mode := cipher.NewCBCEncrypter(block, iv)
+	mode := cipher.NewCBCEncrypter(c.block, iv)
 	mode.CryptBlocks(ser[aes.BlockSize:], padded)
 
 	return ser, nil
 }
 
 // Decrypt decrypts ciphertext using AES-CBC with PKCS7 padding
-func Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
-	if len(ciphertext) < aes.BlockSize {
+func (c *AESCipher) Decrypt(data []byte) ([]byte, error) {
+	if len(data) < aes.BlockSize {
 		return nil, ErrCipherTextTooShort
 	}
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create AES cipher")
-	}
+	iv := data[:aes.BlockSize]
+	org := make([]byte, len(data)-aes.BlockSize)
 
-	iv := ciphertext[:aes.BlockSize]
-	org := make([]byte, len(ciphertext)-aes.BlockSize)
-
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(org, ciphertext[aes.BlockSize:])
+	mode := cipher.NewCBCDecrypter(c.block, iv)
+	mode.CryptBlocks(org, data[aes.BlockSize:])
 
 	return pkcs7UnPadding(org)
 }

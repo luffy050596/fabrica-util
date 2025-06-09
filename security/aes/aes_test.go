@@ -20,29 +20,20 @@ func TestAESCBCCodec(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		input   []byte
-		wantErr bool
+		name  string
+		input []byte
 	}{
 		{
-			name:    "normal ascii text",
-			input:   org,
-			wantErr: false,
+			name:  "normal ascii text",
+			input: org,
 		},
 		{
-			name:    "empty input",
-			input:   empty,
-			wantErr: true,
+			name:  "chinese characters",
+			input: utf8,
 		},
 		{
-			name:    "chinese characters",
-			input:   utf8,
-			wantErr: false,
-		},
-		{
-			name:    "special characters",
-			input:   special,
-			wantErr: false,
+			name:  "special characters",
+			input: special,
 		},
 	}
 
@@ -55,16 +46,13 @@ func TestAESCBCCodec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			// Encrypt
-			encrypted, err := Encrypt(tt.input, aesKey)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				return
-			}
-
+			cipher, err := NewAESCipher(aesKey)
+			require.Nil(t, err)
+			encrypted, err := cipher.Encrypt(tt.input)
 			assert.Nil(t, err)
 
 			// Decrypt
-			decrypted, err := Decrypt(encrypted, aesKey)
+			decrypted, err := cipher.Decrypt(encrypted)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.input, decrypted)
 		})
@@ -74,60 +62,53 @@ func TestAESCBCCodec(t *testing.T) {
 func TestInvalidInputs(t *testing.T) {
 	t.Parallel()
 
-	// Test with nil inputs
-	validKey, _ := xrand.RandAlphaNumString(32)
+	key, _ := xrand.RandAlphaNumString(32)
 
-	_, err := Encrypt(nil, []byte(validKey))
-	assert.NotNil(t, err)
+	aes, err := NewAESCipher([]byte(key))
+	require.Nil(t, err)
 
-	_, err = Encrypt(org, nil)
-	assert.NotNil(t, err)
+	_, err = aes.Encrypt(nil)
+	require.Error(t, err)
 
-	_, err = Encrypt(empty, []byte(validKey))
-	assert.NotNil(t, err)
+	_, err = aes.Encrypt(empty)
+	require.Error(t, err)
+
+	_, err = aes.Decrypt(nil)
+	require.Error(t, err)
+
+	_, err = aes.Decrypt(empty)
+	require.Error(t, err)
 }
 
 func BenchmarkAESCBCEncrypt(b *testing.B) {
-	data, _ := xrand.RandAlphaNumString(32)
-	key := []byte(data)
+	data, err := xrand.RandAlphaNumString(32)
+	require.Nil(b, err)
+
+	cipher, err := NewAESCipher([]byte(data))
+	require.Nil(b, err)
 
 	for i := 0; i < b.N; i++ {
-		if _, err := Encrypt(org, key); err != nil {
+		if _, err := cipher.Encrypt(org); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
 func BenchmarkAESCBCDecrypt(b *testing.B) {
-	data, _ := xrand.RandAlphaNumString(32)
-	key := []byte(data)
-	ser, _ := Encrypt(org, key)
+	data, err := xrand.RandAlphaNumString(32)
+	require.Nil(b, err)
+
+	cipher, err := NewAESCipher([]byte(data))
+	require.Nil(b, err)
+
+	ser, err := cipher.Encrypt(org)
+	require.Nil(b, err)
 
 	for i := 0; i < b.N; i++ {
-		if _, err := Decrypt(ser, key); err != nil {
+		if _, err := cipher.Decrypt(ser); err != nil {
 			b.Fatal(err)
 		}
 	}
-}
-
-func TestMustEncrypt(t *testing.T) {
-	t.Parallel()
-
-	data, err := xrand.RandAlphaNumString(32)
-	require.Nil(t, err)
-
-	key := []byte(data)
-
-	// Test normal operation
-	encrypted := MustEncrypt(org, key)
-	decrypted, err := Decrypt(encrypted, key)
-	assert.Nil(t, err)
-	assert.Equal(t, org, decrypted)
-
-	// Test panic with empty input
-	assert.Panics(t, func() {
-		MustEncrypt(empty, key)
-	})
 }
 
 func TestGenerateAESKey(t *testing.T) {
