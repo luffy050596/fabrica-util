@@ -147,6 +147,8 @@ func TestMultiLayerPool_DifferentSizes(t *testing.T) {
 
 // stress test: create a large number of objects and verify memory usage
 func TestMultiLayerPool_StressTest(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("Skipping stress test in short mode")
 	}
