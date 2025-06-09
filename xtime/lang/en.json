@@ -6,6 +6,12 @@
 
 	"constellations": "Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces",
 
+	"format": {
+		"date": "{%w}, {%M} {%d}, {%y}",
+		"datetime": "{%w}, {%M} {%d}, {%y} {%h}:{%m}:{%s}",
+		"time": "{%h}:{%m}:{%s}"
+	},
+
 	"year":"1 year|%d years",
 	"month":"1 month|%d months",
 	"week":"1 week|%d weeks",
