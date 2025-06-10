@@ -53,16 +53,16 @@ func TestInt64HashRing_AddNode(t *testing.T) {
 	err = r.AddNode(nodes[2])
 	require.Nil(t, err)
 
-	if len(r.nodes) != 300 {
-		t.Errorf("Expected 300 virtual nodes, got %d", len(r.nodes))
+	if r.Len() != 300 {
+		t.Errorf("Expected 300 virtual nodes, got %d", r.Len())
 	}
 
-	originalCount := len(r.nodes)
+	originalCount := r.Len()
 	err = r.AddNode(nodes[0])
 	require.Nil(t, err)
 
-	if len(r.nodes) != originalCount+100 {
-		t.Errorf("Expected %d virtual nodes after duplicate add, got %d", originalCount+100, len(r.nodes))
+	if r.Len() != originalCount+100 {
+		t.Errorf("Expected %d virtual nodes after duplicate add, got %d", originalCount+100, r.Len())
 	}
 }
 
@@ -77,9 +77,8 @@ func TestInt64HashRing_RemoveNode(t *testing.T) {
 		require.Nil(t, err)
 	}
 
+	//nolint:paralleltest
 	t.Run("remove existing node", func(t *testing.T) {
-		t.Parallel()
-
 		r.RemoveNode(nodes[1])
 
 		for _, n := range r.nodes {
@@ -87,22 +86,20 @@ func TestInt64HashRing_RemoveNode(t *testing.T) {
 		}
 	})
 
+	//nolint:paralleltest
 	t.Run("remove non-existent node", func(t *testing.T) {
-		t.Parallel()
-
-		originalCount := len(r.nodes)
+		originalCount := r.Len()
 		r.RemoveNode("ghost_node")
-		assert.Equal(t, len(r.nodes), originalCount)
+		assert.Equal(t, r.Len(), originalCount)
 	})
 
+	//nolint:paralleltest
 	t.Run("remove all nodes", func(t *testing.T) {
-		t.Parallel()
-
 		for _, n := range nodes {
 			r.RemoveNode(n)
 		}
 
-		assert.Equal(t, len(r.nodes), 0)
+		assert.Equal(t, r.Len(), 0)
 	})
 }
 
@@ -157,7 +154,7 @@ func TestInt64HashRing_GetNode(t *testing.T) {
 	t.Run("ring wrap-around", func(t *testing.T) {
 		t.Parallel()
 		// Find the highest hash value
-		maxHash := r.nodes[len(r.nodes)-1].hash
+		maxHash := r.nodes[r.Len()-1].hash
 		testKey := maxHash + 1                                     // Force wrap-around
 		node, ok := r.GetNode(int64(testKey & 0x7FFFFFFFFFFFFFFF)) //nolint:gosec // Acceptable for tests
 		require.True(t, ok)

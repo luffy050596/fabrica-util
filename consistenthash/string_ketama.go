@@ -30,7 +30,8 @@ func (r ringNodes) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // HashRing implements a string-based consistent hash ring
 type HashRing struct {
-	sync.RWMutex
+	mu sync.RWMutex
+
 	virtualSpots int
 	nodes        ringNodes
 	hashCache    sync.Pool
@@ -54,15 +55,15 @@ func NewRing(virtualSpots int) *HashRing {
 
 // AddNode add node and sort automatically
 func (h *HashRing) AddNode(nodeName string) error {
-	h.Lock()
-	defer h.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	hash := h.hashCache.Get().(hash.Hash)
 	defer h.hashCache.Put(hash)
 
 	nodes := make(ringNodes, 0, h.virtualSpots)
 
-	for i := 0; i < h.virtualSpots; i++ {
+	for i := range h.virtualSpots {
 		key := nodeName + ":" + strconv.Itoa(i)
 
 		hash.Reset()
@@ -90,8 +91,8 @@ func (h *HashRing) AddNode(nodeName string) error {
 
 // RemoveNode removes a node with the given name from the hash ring
 func (h *HashRing) RemoveNode(nodeName string) {
-	h.Lock()
-	defer h.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	filtered := h.nodes[:0]
 
@@ -107,8 +108,8 @@ func (h *HashRing) RemoveNode(nodeName string) {
 // GetNode returns the node name for the given key
 // It uses consistent hashing to find the appropriate node
 func (h *HashRing) GetNode(key string) (string, bool) {
-	h.RLock()
-	defer h.RUnlock()
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 
 	if len(h.nodes) == 0 {
 		return "", false
@@ -131,4 +132,11 @@ func (h *HashRing) GetNode(key string) (string, bool) {
 	}
 
 	return h.nodes[idx].nodeName, true
+}
+
+func (h *HashRing) Len() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return len(h.nodes)
 }

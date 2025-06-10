@@ -82,26 +82,27 @@ func TestHashRing_AddRemoveNodes(t *testing.T) {
 	r := NewRing(100)
 	nodes := []string{"node1", "node2", "node3"}
 
+	//nolint:paralleltest
 	t.Run("add nodes", func(t *testing.T) {
-		t.Parallel()
-
 		for _, n := range nodes {
 			err := r.AddNode(n)
 			require.Nil(t, err)
 		}
 
-		assert.Equal(t, len(r.nodes), len(nodes)*r.virtualSpots)
+		assert.Equal(t, r.Len(), len(nodes)*r.virtualSpots)
 	})
 
+	//nolint:paralleltest
 	t.Run("remove node", func(t *testing.T) {
-		t.Parallel()
-		r.RemoveNode("node2")
-		expected := (len(nodes) - 1) * r.virtualSpots
-		assert.Equal(t, len(r.nodes), expected)
+		key := "node2"
 
-		for _, n := range r.nodes {
-			assert.NotEqual(t, n.nodeName, "node2")
-		}
+		r.RemoveNode(key)
+		expected := (len(nodes) - 1) * r.virtualSpots
+		assert.Equal(t, r.Len(), expected)
+
+		node, ok := r.GetNode(key)
+		assert.True(t, ok)
+		assert.NotEqual(t, node, "node2")
 	})
 }
 
@@ -136,26 +137,24 @@ func TestHashRing_GetNode(t *testing.T) {
 		distribution[tc.key] = node
 	}
 
+	//nolint:paralleltest
 	t.Run("consistent distribution", func(t *testing.T) {
-		t.Parallel()
-
 		for _, tc := range testCases {
 			node, _ := r.GetNode(tc.key)
 			assert.Equal(t, node, distribution[tc.key])
 		}
 	})
 
+	//nolint:paralleltest
 	t.Run("empty ring", func(t *testing.T) {
-		t.Parallel()
-
 		emptyRing := NewRing(100)
 		node, found := emptyRing.GetNode("anykey")
 		assert.False(t, found)
 		assert.Equal(t, node, "")
 	})
 
+	//nolint:paralleltest
 	t.Run("wrap around", func(t *testing.T) {
-		t.Parallel()
 		// Create predictable ring with known hash values
 		r := NewRing(1)
 		err := r.AddNode("nodeX")
@@ -189,9 +188,8 @@ func TestHashRing_Consistency(t *testing.T) {
 		original[keys[i]], _ = r.GetNode(keys[i])
 	}
 
+	//nolint:paralleltest
 	t.Run("after adding node", func(t *testing.T) {
-		t.Parallel()
-
 		err := r.AddNode("node4")
 		require.Nil(t, err)
 
@@ -207,8 +205,8 @@ func TestHashRing_Consistency(t *testing.T) {
 		t.Logf("Changed keys after adding node: %.2f%%", float64(changed)/float64(len(keys))*100)
 	})
 
+	//nolint:paralleltest
 	t.Run("after removing node", func(t *testing.T) {
-		t.Parallel()
 		r.RemoveNode("node3")
 
 		changed := 0

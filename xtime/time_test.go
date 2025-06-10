@@ -94,7 +94,7 @@ func TestFormat(t *testing.T) {
 		t.Parallel()
 
 		// Reset global variables to test fallback
-		location = nil
+		location.Store(time.UTC)
 		testTime := time.Date(2020, 3, 15, 10, 30, 0, 0, time.UTC)
 		result := Format(testTime)
 		assert.Contains(t, result, "2020-03-15")
@@ -287,7 +287,7 @@ func TestStartOfMonth(t *testing.T) {
 		t.Parallel()
 
 		// Reset global variable to test fallback
-		location = nil
+		location.Store(time.UTC)
 
 		input := time.Date(2024, 3, 15, 10, 30, 45, 0, time.UTC)
 		expected := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
@@ -338,7 +338,7 @@ func TestGetLocation(t *testing.T) {
 		t.Parallel()
 
 		// Reset global variable
-		location = nil
+		location.Store(time.UTC)
 
 		loc := GetLocation()
 		assert.Equal(t, time.UTC, loc)

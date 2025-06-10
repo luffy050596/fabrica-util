@@ -3,13 +3,14 @@ package xtime
 
 import (
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-pantheon/fabrica-util/errors"
 )
 
 var (
-	location *time.Location
+	location = atomic.Value{}
 )
 
 // Config represents the configuration for time package
@@ -34,7 +35,7 @@ func Init(cfg Config) error {
 		return errors.Wrapf(err, "failed to load timezone %s", cfg.Timezone)
 	}
 
-	location = loc
+	location.Store(loc)
 
 	code, ok := parseLanguageCode(string(cfg.Language))
 	if !ok {
@@ -118,9 +119,10 @@ func InTimezone(t time.Time, tz string) (time.Time, error) {
 
 // GetLocation returns the current location, UTC if not initialized
 func GetLocation() *time.Location {
-	if location != nil {
-		return location
+	v := location.Load()
+	if v == nil {
+		return time.UTC
 	}
 
-	return time.UTC
+	return v.(*time.Location)
 }

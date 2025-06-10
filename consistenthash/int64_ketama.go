@@ -137,3 +137,10 @@ func convertToInt64(val uint64) int64 {
 
 	return int64(val)
 }
+
+func (h *Int64HashRing) Len() int {
+	h.RLock()
+	defer h.RUnlock()
+
+	return len(h.nodes)
+}

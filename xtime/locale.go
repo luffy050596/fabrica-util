@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-pantheon/fabrica-util/errors"
 )
@@ -104,7 +105,7 @@ type localeData struct {
 }
 
 var (
-	currentLocale *Locale
+	currentLocale atomic.Value
 	locales       = make(map[Language]*Locale)
 )
 
@@ -179,14 +180,14 @@ func initDefaultLocale() {
 	}
 
 	locales["en"] = defaultLocale
-	currentLocale = defaultLocale
+	currentLocale.Store(defaultLocale)
 }
 
 // LoadLocale loads a locale from JSON file
 func LoadLocale(language Language) error {
 	// Check if already loaded
 	if locale, exists := locales[language]; exists {
-		currentLocale = locale
+		currentLocale.Store(locale)
 		return nil
 	}
 
@@ -241,7 +242,7 @@ func LoadLocale(language Language) error {
 	}
 
 	locales[language] = locale
-	currentLocale = locale
+	currentLocale.Store(locale)
 
 	return nil
 }
@@ -250,17 +251,18 @@ var localOnce sync.Once
 
 // GetCurrentLocale returns the current locale
 func GetCurrentLocale() *Locale {
-	if currentLocale == nil {
+	v := currentLocale.Load()
+	if v == nil {
 		localOnce.Do(initDefaultLocale)
 	}
 
-	return currentLocale
+	return v.(*Locale)
 }
 
 // SetLocale sets the current locale
 func SetLocale(language Language) error {
 	if locale, exists := locales[language]; exists {
-		currentLocale = locale
+		currentLocale.Store(locale)
 		return nil
 	}
 
