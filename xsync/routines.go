@@ -31,14 +31,10 @@ func GoSafe(msg string, fn func() error, filters ...func(err error) bool) {
 	}
 
 	go func() {
-		// get routine id for logging
-		// rid := RoutineID()
-
 		defer func() {
 			if r := recover(); r != nil {
 				slog.Error("goroutine panic recovered",
 					"message", msg,
-					// "routine_id", rid,
 					"error", CatchErr(r),
 				)
 			}
@@ -48,7 +44,6 @@ func GoSafe(msg string, fn func() error, filters ...func(err error) bool) {
 			if !filter(err) {
 				slog.Error("goroutine error occurred.",
 					"message", msg,
-					// "routine_id", rid,
 					"error", err,
 				)
 			}
