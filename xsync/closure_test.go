@@ -9,67 +9,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStopper(t *testing.T) {
+func TestNewClosure(t *testing.T) {
 	t.Parallel()
 
-	s := NewStopper(5 * time.Second)
+	s := NewClosure(5 * time.Second)
 	require.NotNil(t, s)
 	assert.Equal(t, int32(stateIdle), s.state.Load())
-	assert.Equal(t, 5*time.Second, s.stopTimeout)
+	assert.Equal(t, 5*time.Second, s.closeTimeout)
 }
 
-func TestTriggerStop(t *testing.T) {
+func TestTriggerClosure(t *testing.T) {
 	t.Parallel()
 
-	s := NewStopper(1 * time.Second)
+	s := NewClosure(1 * time.Second)
 
-	require.False(t, s.IsStopTriggered())
+	require.False(t, s.IsCloseTriggered())
 
-	s.TriggerStop()
-	assert.True(t, s.IsStopTriggered())
+	s.TriggerClose()
+	assert.True(t, s.IsCloseTriggered())
 
 	select {
-	case <-s.StopTriggered():
+	case <-s.CloseTriggered():
 		t.Log("expected")
 	default:
-		t.Fatal("StopTriggered channel should be closed")
+		t.Fatal("CloseTriggered channel should be closed")
 	}
 
 	// Test idempotency
-	s.TriggerStop()
-	assert.True(t, s.IsStopTriggered())
+	s.TriggerClose()
+	assert.True(t, s.IsCloseTriggered())
 }
 
-func TestDoStop(t *testing.T) {
+func TestDoClose(t *testing.T) {
 	t.Parallel()
 
 	t.Run("NormalExecution", func(t *testing.T) {
 		t.Parallel()
 
-		s := NewStopper(1 * time.Second)
+		s := NewClosure(1 * time.Second)
 		executed := false
-		stopFunc := func() {
+		closeFunc := func() {
 			executed = true
 		}
 
-		err := s.DoStop(stopFunc)
+		err := s.DoClose(closeFunc)
 		require.NoError(t, err)
 		assert.True(t, executed)
-		assert.True(t, s.IsStopping())
+		assert.True(t, s.OnClosing())
 
 		// Should be stopped
 		select {
-		case <-s.Stopping():
+		case <-s.ClosingStart():
 			t.Log("expected")
 		default:
 			t.Fatal("Stopping channel should be closed")
 		}
 
-		<-s.stoppedChan // use channel directly to wait
+		<-s.closedChan // use channel directly to wait
 
 		// Test idempotency
 		executed = false
-		err = s.DoStop(stopFunc)
+		err = s.DoClose(closeFunc)
 		require.NoError(t, err)
 		assert.False(t, executed, "stop function should not run again")
 	})
@@ -77,22 +77,22 @@ func TestDoStop(t *testing.T) {
 	t.Run("Timeout", func(t *testing.T) {
 		t.Parallel()
 
-		s := NewStopper(50 * time.Millisecond)
+		s := NewClosure(50 * time.Millisecond)
 		stopFunc := func() {
 			time.Sleep(100 * time.Millisecond) // longer than timeout
 		}
 
-		err := s.DoStop(stopFunc)
-		assert.ErrorIs(t, err, ErrStopTimeout)
+		err := s.DoClose(stopFunc)
+		assert.ErrorIs(t, err, ErrCloseTimeout)
 
 		// WaitStopped should still be closed
-		s.WaitStopped()
+		s.WaitClosed()
 	})
 
 	t.Run("NoTimeout", func(t *testing.T) {
 		t.Parallel()
 
-		s := NewStopper(0)
+		s := NewClosure(0)
 		executed := false
 		stopFunc := func() {
 			time.Sleep(50 * time.Millisecond)
@@ -100,7 +100,7 @@ func TestDoStop(t *testing.T) {
 			executed = true
 		}
 
-		err := s.DoStop(stopFunc)
+		err := s.DoClose(stopFunc)
 		require.NoError(t, err)
 		assert.True(t, executed)
 	})
@@ -109,19 +109,19 @@ func TestDoStop(t *testing.T) {
 func TestFullLifecycle(t *testing.T) {
 	t.Parallel()
 
-	s := NewStopper(100 * time.Millisecond)
-	require.False(t, s.IsStopTriggered())
-	require.False(t, s.IsStopping())
+	s := NewClosure(100 * time.Millisecond)
+	require.False(t, s.IsCloseTriggered())
+	require.False(t, s.OnClosing())
 
 	// 1. Trigger Stop
-	s.TriggerStop()
-	assert.True(t, s.IsStopTriggered())
-	assert.False(t, s.IsStopping())
-	<-s.StopTriggered() // ensure channel is closed
+	s.TriggerClose()
+	assert.True(t, s.IsCloseTriggered())
+	assert.False(t, s.OnClosing())
+	<-s.CloseTriggered() // ensure channel is closed
 
 	// 2. Do Stop
 	stopped := false
-	err := s.DoStop(func() {
+	err := s.DoClose(func() {
 		time.Sleep(10 * time.Millisecond)
 
 		stopped = true
@@ -129,24 +129,24 @@ func TestFullLifecycle(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, stopped)
-	assert.True(t, s.IsStopping())
-	<-s.Stopping()
+	assert.True(t, s.OnClosing())
+	<-s.ClosingStart()
 
 	// 3. Wait Stopped
-	s.WaitStopped()
-	assert.Equal(t, int32(stateStopped), s.state.Load())
+	s.WaitClosed()
+	assert.Equal(t, int32(stateClosed), s.state.Load())
 }
 
 func TestConcurrentTriggerStop(t *testing.T) {
 	t.Parallel()
 
-	s := NewStopper(1 * time.Second)
+	s := NewClosure(1 * time.Second)
 	numGoroutines := 100
 	done := make(chan bool)
 
 	for range numGoroutines {
 		go func() {
-			s.TriggerStop()
+			s.TriggerClose()
 			done <- true
 		}()
 	}
@@ -156,17 +156,17 @@ func TestConcurrentTriggerStop(t *testing.T) {
 	}
 
 	// The right check:
-	<-s.StopTriggered() // This should not block
-	assert.True(t, s.IsStopTriggered())
+	<-s.CloseTriggered() // This should not block
+	assert.True(t, s.IsCloseTriggered())
 
 	// Test idempotency by ensuring a second call doesn't block or panic
-	s.TriggerStop()
+	s.TriggerClose()
 }
 
 func TestConcurrentDoStop(t *testing.T) {
 	t.Parallel()
 
-	s := NewStopper(1 * time.Second)
+	s := NewClosure(1 * time.Second)
 	numGoroutines := 100
 	done := make(chan bool)
 
@@ -174,7 +174,7 @@ func TestConcurrentDoStop(t *testing.T) {
 
 	for range numGoroutines {
 		go func() {
-			err := s.DoStop(func() {
+			err := s.DoClose(func() {
 				atomic.AddInt32(&executionCount, 1)
 			})
 			require.NoError(t, err)
@@ -186,9 +186,9 @@ func TestConcurrentDoStop(t *testing.T) {
 		<-done
 	}
 
-	s.WaitStopped()
+	s.WaitClosed()
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executionCount), "stop function should only be executed once")
-	assert.True(t, s.IsStopping())
+	assert.True(t, s.OnClosing())
 }
 
 // Benchmarks
@@ -199,56 +199,56 @@ func BenchmarkTriggerStop(b *testing.B) {
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			s := NewStopper(0)
-			s.TriggerStop()
+			s := NewClosure(0)
+			s.TriggerClose()
 		}
 	})
 }
 
-// BenchmarkDoStop tests the performance of creating and stopping a stopper.
+// BenchmarkDoClose tests the performance of creating and stopping a stopper.
 // It is a parallel benchmark, but each goroutine works on its own instance, so there's no contention.
-func BenchmarkDoStop(b *testing.B) {
+func BenchmarkDoClose(b *testing.B) {
 	stopFunc := func() {}
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			s := NewStopper(1 * time.Second)
-			err := s.DoStop(stopFunc)
+			s := NewClosure(1 * time.Second)
+			err := s.DoClose(stopFunc)
 			require.NoError(b, err)
 		}
 	})
 }
 
-// BenchmarkConcurrentTriggerStop tests the performance of TriggerStop under high contention.
+// BenchmarkConcurrentTriggerClose tests the performance of TriggerStop under high contention.
 // All goroutines are calling TriggerStop on the same Stopper instance.
-func BenchmarkConcurrentTriggerStop(b *testing.B) {
+func BenchmarkConcurrentTriggerClose(b *testing.B) {
 	b.ReportAllocs()
 
-	s := NewStopper(1 * time.Second)
+	s := NewClosure(1 * time.Second)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			s.TriggerStop()
+			s.TriggerClose()
 		}
 	})
 }
 
-// BenchmarkConcurrentDoStop tests the performance of DoStop under high contention.
+// BenchmarkConcurrentDoClose tests the performance of DoStop under high contention.
 // It resets the stopper on each main iteration to allow the stop function to run.
-func BenchmarkConcurrentDoStop(b *testing.B) {
+func BenchmarkConcurrentDoClose(b *testing.B) {
 	stopFunc := func() {}
 
 	b.ReportAllocs()
 	b.StopTimer()
 
 	for range b.N {
-		s := NewStopper(1 * time.Second)
+		s := NewClosure(1 * time.Second)
 
 		b.StartTimer()
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				err := s.DoStop(stopFunc)
+				err := s.DoClose(stopFunc)
 				require.NoError(b, err)
 			}
 		})

@@ -15,8 +15,8 @@ var ErrDelayerExpired = errors.New("delayer expired")
 type Delayable interface {
 	WorkerDelayable
 
-	Tick() chan struct{}
-	Stop()
+	Wait() chan struct{}
+	Close()
 	IsExpired() bool
 	TimeRemaining() time.Duration
 }
@@ -140,7 +140,7 @@ func (c *delayer) Reset() {
 	}
 }
 
-func (c *delayer) Stop() {
+func (c *delayer) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -164,7 +164,7 @@ func (c *delayer) Stop() {
 	}
 }
 
-func (c *delayer) Tick() chan struct{} {
+func (c *delayer) Wait() chan struct{} {
 	return c.tick
 }
 

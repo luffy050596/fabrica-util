@@ -12,7 +12,7 @@ func TestDelayer_BasicFunctionality(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	// Test setting expiry time
 	expiryTime := time.Now().Add(100 * time.Millisecond)
@@ -25,7 +25,7 @@ func TestDelayer_BasicFunctionality(t *testing.T) {
 
 	// Wait for expiry
 	select {
-	case <-delayer.Tick():
+	case <-delayer.Wait():
 		// Expected behavior
 	case <-time.After(200 * time.Millisecond):
 		t.Error("delayer did not expire within expected time")
@@ -41,7 +41,7 @@ func TestDelayer_Reset(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	// Set expiry time
 	expiryTime := time.Now().Add(100 * time.Millisecond)
@@ -57,7 +57,7 @@ func TestDelayer_Reset(t *testing.T) {
 
 	// Verify no tick is received
 	select {
-	case <-delayer.Tick():
+	case <-delayer.Wait():
 		t.Error("Should not receive tick after reset")
 	case <-time.After(150 * time.Millisecond):
 		t.Log("Should not receive tick after reset")
@@ -74,11 +74,11 @@ func TestDelayer_Stop(t *testing.T) {
 	delayer.SetExpiryTime(expiryTime)
 
 	// Stop immediately
-	delayer.Stop()
+	delayer.Close()
 
 	// Verify no tick is received
 	select {
-	case <-delayer.Tick():
+	case <-delayer.Wait():
 		t.Error("Should not receive tick after stop")
 	case <-time.After(150 * time.Millisecond):
 		t.Log("Should not receive tick after stop")
@@ -89,7 +89,7 @@ func TestDelayer_TimeRemaining(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	// Set expiry time 200ms from now
 	expiryTime := time.Now().Add(200 * time.Millisecond)
@@ -110,7 +110,7 @@ func TestDelayer_TimeRemaining(t *testing.T) {
 	}
 
 	// Wait for expiry
-	<-delayer.Tick()
+	<-delayer.Wait()
 
 	// Check remaining time after expiry
 	remaining = delayer.TimeRemaining()
@@ -123,7 +123,7 @@ func TestDelayer_ImmediateExpiry(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	// Set expiry time in the past
 	expiryTime := time.Now().Add(-100 * time.Millisecond)
@@ -131,7 +131,7 @@ func TestDelayer_ImmediateExpiry(t *testing.T) {
 
 	// Should receive immediate tick
 	select {
-	case <-delayer.Tick():
+	case <-delayer.Wait():
 		// Expected behavior
 	case <-time.After(50 * time.Millisecond):
 		t.Error("Should receive immediate tick for past expiry time")
@@ -145,7 +145,7 @@ func TestDelayer_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	var wg sync.WaitGroup
 
@@ -204,7 +204,7 @@ func TestDelayer_MultipleSetExpiryTime(t *testing.T) {
 	t.Parallel()
 
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	// Set initial expiry time
 	expiryTime1 := time.Now().Add(200 * time.Millisecond)
@@ -217,7 +217,7 @@ func TestDelayer_MultipleSetExpiryTime(t *testing.T) {
 	// Should expire at the second time
 	start := time.Now()
 
-	<-delayer.Tick()
+	<-delayer.Wait()
 
 	elapsed := time.Since(start)
 
@@ -234,7 +234,7 @@ func TestDelayer_MultipleSetExpiryTime(t *testing.T) {
 // BenchmarkDelayer_SetExpiryTime benchmarks the SetExpiryTime operation
 func BenchmarkDelayer_SetExpiryTime(b *testing.B) {
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	b.ResetTimer()
 
@@ -247,7 +247,7 @@ func BenchmarkDelayer_SetExpiryTime(b *testing.B) {
 // BenchmarkDelayer_ConcurrentAccess benchmarks concurrent access
 func BenchmarkDelayer_ConcurrentAccess(b *testing.B) {
 	delayer := NewDelayer()
-	defer delayer.Stop()
+	defer delayer.Close()
 
 	b.ResetTimer()
 

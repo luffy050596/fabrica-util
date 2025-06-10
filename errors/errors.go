@@ -31,10 +31,43 @@ func Wrapf(err error, format string, args ...any) error {
 	return pkgerrors.Wrapf(err, format, args...)
 }
 
+// WithMessage returns an error that wraps the given error with the given message
+// It's a wrapper around github.com/pkg/errors.WithMessage
+func WithMessage(err error, message string) error {
+	return pkgerrors.WithMessage(err, message)
+}
+
+// WithMessagef returns an error that wraps the given error with the given message
+// It's a wrapper around github.com/pkg/errors.WithMessagef
+func WithMessagef(err error, format string, args ...any) error {
+	return pkgerrors.WithMessagef(err, format, args...)
+}
+
 // Join returns an error that wraps the given errors
 // It's a wrapper around errors.Join
 func Join(errs ...error) error {
 	return errors.Join(errs...)
+}
+
+// JoinUnsimilar returns an error that wraps the given errors,
+// but only if the errors are not the same.
+// It's a wrapper around errors.Join
+func JoinUnsimilar(errs ...error) error {
+	err := errs[0]
+
+	for _, e := range errs[1:] {
+		if e == nil {
+			continue
+		}
+
+		if errors.Is(err, e) {
+			continue
+		}
+
+		err = errors.Join(err, e)
+	}
+
+	return err
 }
 
 // Is reports whether any error in err's tree matches target
