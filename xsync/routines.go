@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"runtime"
 
-	"github.com/pkg/errors"
+	"github.com/go-pantheon/fabrica-util/errors"
 )
 
 // DefaultStackSize is the default size for stack traces
@@ -98,7 +98,7 @@ func RoutineID() uint64 {
 
 // CatchErr creates an error with stack trace from a recovered panic.
 // It captures the current stack trace and formats it as part of the error message.
-func CatchErr(r interface{}) error {
+func CatchErr(r any) error {
 	if r == nil {
 		return nil
 	}
@@ -106,14 +106,14 @@ func CatchErr(r interface{}) error {
 	var err error
 	switch t := r.(type) {
 	case error:
-		err = t
+		err = errors.Wrap(t, "goroutine panic recovered")
 	case string:
 		err = errors.New(t)
 	default:
 		err = errors.Errorf("%v", r)
 	}
 
-	return errors.WithStack(err)
+	return err
 }
 
 // CatchErrWithSize creates an error with a custom sized stack trace from a recovered panic.
