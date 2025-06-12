@@ -1,5 +1,5 @@
 // Package db provides database utilities for MongoDB connection and ID generation
-package db
+package mongo
 
 import (
 	"context"
@@ -15,9 +15,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
-// NewMongo creates a new MongoDB connection with the given connection string and database name
+// New creates a new MongoDB connection with the given connection string and database name
 // It also returns a cleanup function to close the connection
-func NewMongo(dbsn, dbname string) (db *mongo.Database, cleanup func(), err error) {
+func New(dbsn, dbname string) (db *mongo.Database, cleanup func(), err error) {
 	if len(dbname) == 0 || len(dbsn) == 0 {
 		return nil, nil, errors.Errorf("Mongo config is empty")
 	}
