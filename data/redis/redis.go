@@ -1,5 +1,5 @@
-// Package cache provides Redis cache implementation with connection management
-package cache
+// Package redis provides Redis cache implementation with connection management
+package redis
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// NewRedis creates a new Redis client and returns a Cacheable interface
+// NewStandalone creates a new Redis client and returns a Cacheable interface
 // It also returns a cleanup function to close the connection
-func NewRedis(c *redis.Options) (rdb redis.UniversalClient, cleanup func(), err error) {
+func NewStandalone(c *redis.Options) (rdb redis.UniversalClient, cleanup func(), err error) {
 	rdb = redis.NewClient(c)
 
 	cleanup = func() {
@@ -33,9 +33,9 @@ func NewRedis(c *redis.Options) (rdb redis.UniversalClient, cleanup func(), err 
 	return
 }
 
-// NewRedisCluster creates a new Redis cluster client and returns a Cacheable interface
+// NewCluster creates a new Redis cluster client and returns a Cacheable interface
 // It also returns a cleanup function to close the connection
-func NewRedisCluster(c *redis.ClusterOptions) (rdb redis.UniversalClient, cleanup func(), err error) {
+func NewCluster(c *redis.ClusterOptions) (rdb redis.UniversalClient, cleanup func(), err error) {
 	rdb = redis.NewClusterClient(c)
 
 	cleanup = func() {
