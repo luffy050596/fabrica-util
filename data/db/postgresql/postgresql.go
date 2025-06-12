@@ -1,4 +1,4 @@
-package postgres
+package postgresql
 
 import (
 	"context"
@@ -42,16 +42,16 @@ func DefaultConfig() Config {
 
 // New creates a new PostgreSQL database connection with the given configuration
 func New(driverName string, config Config) (db *sql.DB, cleanup func(), err error) {
-	if driverName == "" {
-		return nil, nil, errors.New("driverName is empty")
-	}
-
 	if config.DSN == "" {
 		return nil, nil, errors.New("dsn is empty")
 	}
 
 	if config.DBName == "" {
 		return nil, nil, errors.New("dbname is empty")
+	}
+
+	if driverName == "" {
+		driverName = "pgx"
 	}
 
 	db, err = sql.Open(driverName, config.DSN)
@@ -92,7 +92,7 @@ func NewSimple(dsn, dbname string) (db *sql.DB, cleanup func(), err error) {
 	config.DSN = dsn
 	config.DBName = dbname
 
-	db, cleanup, err = New("postgres", config)
+	db, cleanup, err = New("pgx", config)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create database connection")
 	}

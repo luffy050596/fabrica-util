@@ -9,14 +9,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Cacheable is an interface that represents a Redis client with the Cmdable interface
-type Cacheable interface {
-	redis.Cmdable
-}
-
 // NewRedis creates a new Redis client and returns a Cacheable interface
 // It also returns a cleanup function to close the connection
-func NewRedis(c *redis.Options) (rdb Cacheable, cleanup func(), err error) {
+func NewRedis(c *redis.Options) (rdb redis.UniversalClient, cleanup func(), err error) {
 	rdb = redis.NewClient(c)
 
 	cleanup = func() {
@@ -40,7 +35,7 @@ func NewRedis(c *redis.Options) (rdb Cacheable, cleanup func(), err error) {
 
 // NewRedisCluster creates a new Redis cluster client and returns a Cacheable interface
 // It also returns a cleanup function to close the connection
-func NewRedisCluster(c *redis.ClusterOptions) (rdb Cacheable, cleanup func(), err error) {
+func NewRedisCluster(c *redis.ClusterOptions) (rdb redis.UniversalClient, cleanup func(), err error) {
 	rdb = redis.NewClusterClient(c)
 
 	cleanup = func() {
