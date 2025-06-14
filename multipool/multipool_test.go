@@ -179,7 +179,7 @@ func TestMultiLayerPool_StressTest(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			for i := 0; i < objCount/concurrency; i++ {
+			for i := range objCount / concurrency {
 				var wrapper *testSizeReporter
 
 				// set object properties and size based on index
