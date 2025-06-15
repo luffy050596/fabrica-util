@@ -2,8 +2,10 @@ package curve25519
 
 import (
 	"crypto/rand"
+	"fmt"
 	"testing"
 
+	"github.com/go-pantheon/fabrica-util/security/aes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,15 +38,64 @@ func TestInvalidPublicKey(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestAllZeroPublicKey(t *testing.T) {
+	t.Parallel()
+
+	// Generate a valid private key
+	privateKey, _, err := GenerateKeyPair()
+	assert.NoError(t, err)
+
+	// Create an all-zero public key (invalid)
+	var zeroPublicKey [32]byte
+
+	// This should fail because all-zero public key is a low order point
+	_, err = ComputeSharedSecret(privateKey, zeroPublicKey)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "low order point")
+}
+
+func TestSharedSecret(t *testing.T) {
+	t.Parallel()
+
+	for i := range 100 {
+		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+			t.Parallel()
+
+			serverPrivate, _, err := GenerateKeyPair()
+			assert.NoError(t, err)
+
+			_, clientPublic, err := GenerateKeyPair()
+			assert.NoError(t, err)
+
+			secret, err := ComputeSharedSecret(serverPrivate, clientPublic)
+			assert.NoError(t, err)
+
+			cipher, err := aes.NewAESCipher(secret)
+			assert.NoError(t, err)
+
+			plaintext := []byte("Hello, world!")
+
+			encrypted, err := cipher.Encrypt(plaintext)
+			assert.NoError(t, err)
+
+			decrypted, err := cipher.Decrypt(encrypted)
+			assert.NoError(t, err)
+			assert.Equal(t, plaintext, decrypted)
+		})
+	}
+}
+
 func BenchmarkKeyGeneration(b *testing.B) {
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
-		_, _, err := GenerateKeyPair()
-		if err != nil {
-			b.Fatalf("key generation failed: %v", err)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _, err := GenerateKeyPair()
+			if err != nil {
+				b.Fatalf("key generation failed: %v", err)
+			}
 		}
-	}
+	})
 }
 
 func BenchmarkSharedSecretComputation(b *testing.B) {
@@ -71,7 +122,7 @@ func BenchmarkSharedSecretComputation(b *testing.B) {
 	})
 }
 
-var sink interface{} // prevent compiler optimize
+var sink any // prevent compiler optimize
 
 func BenchmarkKeyGenerationAndExchange(b *testing.B) {
 	b.ReportAllocs()
