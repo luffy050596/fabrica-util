@@ -2,88 +2,91 @@
 package aes
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
+	"io"
 
-	"github.com/pkg/errors"
-)
-
-// package error definitions
-var (
-	ErrCipherTextTooShort = errors.New("cipher text is too short")
-	ErrInvalidPadding     = errors.New("invalid PKCS7 padding")
+	"github.com/go-pantheon/fabrica-util/errors"
 )
 
 // Cipher represents an AES cipher with a key and block
 type Cipher struct {
 	key   []byte
-	block cipher.Block
+	block cipher.AEAD
 }
 
 // NewAESCipher creates a new AESCipher with the given key
 func NewAESCipher(key []byte) (*Cipher, error) {
+	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
+		return nil, errors.New("invalid key size: must be 16, 24, or 32 bytes")
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create AES cipher")
 	}
 
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create AES GCM")
+	}
+
 	return &Cipher{
 		key:   key,
-		block: block,
+		block: aead,
 	}, nil
 }
 
-// Encrypt encrypts plaintext using AES-CBC with PKCS7 padding
+// EncryptAllowEmpty encrypts plaintext using AES-GCM, allowing empty data
+func (c *Cipher) EncryptAllowEmpty(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+
+	return c.Encrypt(data)
+}
+
+// Encrypt encrypts plaintext using AES-GCM
 func (c *Cipher) Encrypt(data []byte) ([]byte, error) {
 	if len(data) == 0 {
-		return nil, errors.New("plaintext cannot be empty")
+		return nil, errors.New("data is empty")
 	}
 
-	padded := pkcs7Padding(data, aes.BlockSize)
+	nonce := make([]byte, c.block.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, errors.Wrap(err, "failed to generate nonce")
+	}
 
-	ser := make([]byte, aes.BlockSize+len(padded))
-	iv := ser[:aes.BlockSize]
-	copy(iv, c.key[:aes.BlockSize])
+	ciphertext := c.block.Seal(nonce, nonce, data, nil)
 
-	mode := cipher.NewCBCEncrypter(c.block, iv)
-	mode.CryptBlocks(ser[aes.BlockSize:], padded)
-
-	return ser, nil
+	return ciphertext, nil
 }
 
-// Decrypt decrypts ciphertext using AES-CBC with PKCS7 padding
+// DecryptAllowEmpty decrypts ciphertext using AES-GCM, allowing empty data
+func (c *Cipher) DecryptAllowEmpty(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+
+	return c.Decrypt(data)
+}
+
+// Decrypt decrypts ciphertext using AES-GCM
 func (c *Cipher) Decrypt(data []byte) ([]byte, error) {
-	if len(data) < aes.BlockSize {
-		return nil, ErrCipherTextTooShort
+	if len(data) == 0 {
+		return nil, errors.New("data is empty")
 	}
 
-	iv := data[:aes.BlockSize]
-	org := make([]byte, len(data)-aes.BlockSize)
-
-	mode := cipher.NewCBCDecrypter(c.block, iv)
-	mode.CryptBlocks(org, data[aes.BlockSize:])
-
-	return pkcs7UnPadding(org)
-}
-
-// pkcs7Padding adds PKCS7 padding to the data
-func pkcs7Padding(data []byte, blockSize int) []byte {
-	padding := blockSize - len(data)%blockSize
-	padText := bytes.Repeat([]byte{byte(padding)}, padding)
-	data = append(data, padText...)
-
-	return data
-}
-
-// pkcs7UnPadding removes PKCS7 padding from the data
-func pkcs7UnPadding(origData []byte) ([]byte, error) {
-	length := len(origData)
-	unPadding := int(origData[length-1])
-
-	if unPadding <= 0 || unPadding > length {
-		return nil, ErrInvalidPadding
+	if len(data) < c.block.NonceSize() {
+		return data, errors.New("cipher text is too short")
 	}
 
-	return origData[:(length - unPadding)], nil
+	nonce := data[:c.block.NonceSize()]
+
+	plaintext, err := c.block.Open(nil, nonce, data[c.block.NonceSize():], nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decrypt data")
+	}
+
+	return plaintext, nil
 }
