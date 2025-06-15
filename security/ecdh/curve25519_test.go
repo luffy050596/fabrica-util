@@ -1,4 +1,4 @@
-package curve25519
+package ecdh
 
 import (
 	"crypto/rand"
@@ -12,44 +12,45 @@ import (
 func TestKeyExchange(t *testing.T) {
 	t.Parallel()
 
-	serverPrivate, serverPublic, err := GenerateKeyPair()
+	svrPri, svrPub, err := GenKeyPair()
 	assert.NoError(t, err)
 
-	clientPrivate, clientPublic, err := GenerateKeyPair()
+	cliPri, cliPub, err := GenKeyPair()
 	assert.NoError(t, err)
 
-	serverSecret, err := ComputeSharedSecret(serverPrivate, clientPublic)
+	svrSharedKey, err := ComputeSharedKey(svrPri, cliPub)
 	assert.NoError(t, err)
 
-	clientSecret, err := ComputeSharedSecret(clientPrivate, serverPublic)
+	cliSharedKey, err := ComputeSharedKey(cliPri, svrPub)
 	assert.NoError(t, err)
 
-	assert.Equal(t, serverSecret, clientSecret)
+	assert.Equal(t, svrSharedKey, cliSharedKey)
 }
 
-func TestInvalidPublicKey(t *testing.T) {
+func TestInvalidPubKey(t *testing.T) {
 	t.Parallel()
 
 	invalidKey := make([]byte, 31)
+
 	_, err := rand.Read(invalidKey)
 	assert.NoError(t, err)
 
-	_, err = ParsePublicKey(invalidKey)
+	_, err = ParseKey(invalidKey)
 	assert.Error(t, err)
 }
 
-func TestAllZeroPublicKey(t *testing.T) {
+func TestAllZeroPubKey(t *testing.T) {
 	t.Parallel()
 
 	// Generate a valid private key
-	privateKey, _, err := GenerateKeyPair()
+	pri, _, err := GenKeyPair()
 	assert.NoError(t, err)
 
 	// Create an all-zero public key (invalid)
-	var zeroPublicKey [32]byte
+	var zeroPub [32]byte
 
 	// This should fail because all-zero public key is a low order point
-	_, err = ComputeSharedSecret(privateKey, zeroPublicKey)
+	_, err = ComputeSharedKey(pri, zeroPub)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "low order point")
 }
@@ -61,13 +62,13 @@ func TestSharedSecret(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
 			t.Parallel()
 
-			serverPrivate, _, err := GenerateKeyPair()
+			svrPri, _, err := GenKeyPair()
 			assert.NoError(t, err)
 
-			_, clientPublic, err := GenerateKeyPair()
+			_, cliPub, err := GenKeyPair()
 			assert.NoError(t, err)
 
-			secret, err := ComputeSharedSecret(serverPrivate, clientPublic)
+			secret, err := ComputeSharedKey(svrPri, cliPub)
 			assert.NoError(t, err)
 
 			cipher, err := aes.NewAESCipher(secret)
@@ -90,7 +91,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, _, err := GenerateKeyPair()
+			_, _, err := GenKeyPair()
 			if err != nil {
 				b.Fatalf("key generation failed: %v", err)
 			}
@@ -100,8 +101,8 @@ func BenchmarkKeyGeneration(b *testing.B) {
 
 func BenchmarkSharedSecretComputation(b *testing.B) {
 	// pre-generate fixed key pair
-	serverPriv, serverPub, _ := GenerateKeyPair()
-	clientPriv, clientPub, _ := GenerateKeyPair()
+	svrPri, svrPub, _ := GenKeyPair()
+	cliPri, cliPub, _ := GenKeyPair()
 
 	// reset timer
 	b.ResetTimer()
@@ -111,11 +112,11 @@ func BenchmarkSharedSecretComputation(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			// test two direction key computation
-			if _, err := ComputeSharedSecret(serverPriv, clientPub); err != nil {
+			if _, err := ComputeSharedKey(svrPri, cliPub); err != nil {
 				b.Fatal(err)
 			}
 
-			if _, err := ComputeSharedSecret(clientPriv, serverPub); err != nil {
+			if _, err := ComputeSharedKey(cliPri, svrPub); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -129,19 +130,19 @@ func BenchmarkKeyGenerationAndExchange(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// generate server key
-		serverPriv, _, err := GenerateKeyPair()
+		svrPri, _, err := GenKeyPair()
 		if err != nil {
 			b.Fatal(err)
 		}
 
 		// generate client key
-		_, clientPub, err := GenerateKeyPair()
+		_, cliPub, err := GenKeyPair()
 		if err != nil {
 			b.Fatal(err)
 		}
 
 		// compute shared secret
-		secret, err := ComputeSharedSecret(serverPriv, clientPub)
+		secret, err := ComputeSharedKey(svrPri, cliPub)
 		if err != nil {
 			b.Fatal(err)
 		}

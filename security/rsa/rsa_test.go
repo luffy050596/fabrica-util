@@ -7,20 +7,11 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"io"
 	"testing"
 
 	"github.com/go-pantheon/fabrica-util/xrand"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/curve25519"
 )
-
-func TestGenCurve25519Key(t *testing.T) {
-	t.Parallel()
-
-	aKey, bKey := genCurve25519Key()
-	assert.Equal(t, aKey, bKey)
-}
 
 func TestRSAEncryptDecrypt(t *testing.T) {
 	t.Parallel()
@@ -125,25 +116,6 @@ func TestRSASignVerify(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestCurve25519KeyExchange(t *testing.T) {
-	t.Parallel()
-
-	aKey, bKey := genCurve25519Key()
-	assert.NotEmpty(t, aKey)
-	assert.NotEmpty(t, bKey)
-	assert.Equal(t, aKey, bKey, "Key exchange failed: keys don't match")
-
-	// Test multiple key exchanges
-	for i := 0; i < 5; i++ {
-		aKey2, bKey2 := genCurve25519Key()
-		assert.NotEmpty(t, aKey2)
-		assert.NotEmpty(t, bKey2)
-		assert.Equal(t, aKey2, bKey2)
-		// Verify different key exchanges produce different keys
-		assert.NotEqual(t, aKey, aKey2)
-	}
-}
-
 func BenchmarkRSAEncrypt(b *testing.B) {
 	pub, _, _, _, err := generateTestKeyPair(4096)
 	assert.NoError(b, err)
@@ -174,27 +146,6 @@ func BenchmarkGenRsaKey(b *testing.B) {
 		_, _, _, _, err := generateTestKeyPair(4096)
 		assert.NoError(b, err)
 	}
-}
-
-func BenchmarkGenCurve25519Key(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		genCurve25519Key()
-	}
-}
-
-func genCurve25519Key() (aKey, bKey []byte) {
-	var aPri, aPub [32]byte
-	_, _ = io.ReadFull(rand.Reader, aPri[:])
-	curve25519.ScalarBaseMult(&aPub, &aPri)
-
-	var bPri, bPub [32]byte
-	_, _ = io.ReadFull(rand.Reader, bPri[:])
-	curve25519.ScalarBaseMult(&bPub, &bPri)
-
-	aKey, _ = curve25519.X25519(aPri[:], bPub[:])
-	bKey, _ = curve25519.X25519(bPri[:], aPub[:])
-
-	return
 }
 
 func generateTestKeyPair(bits int) (*rsa.PublicKey, *rsa.PrivateKey, []byte, []byte, error) {
