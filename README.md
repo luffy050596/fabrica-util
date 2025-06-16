@@ -1,4 +1,17 @@
-# Fabrica Util
+<p align="center">
+<h1 class="logo">FABRICA UTIL</h1>
+</p>
+
+<p align="center">
+<a href="https://github.com/go-pantheon/fabrica-util/actions"><img src="https://github.com/go-pantheon/fabrica-util/workflows/Go/badge.svg" alt="Build Status"></a>
+<a href="https://pkg.go.dev/github.com/go-pantheon/fabrica-util"><img src="https://pkg.go.dev/badge/github.com/go-pantheon/fabrica-util/v2" alt="GoDoc"></a>
+<a href="https://codecov.io/gh/go-pantheon/fabrica-util"><img src="https://codecov.io/gh/go-pantheon/fabrica-util/master/graph/badge.svg" alt="codeCov"></a>
+<a href="https://goreportcard.com/report/github.com/go-pantheon/fabrica-util"><img src="https://goreportcard.com/badge/github.com/go-pantheon/fabrica-util" alt="Go Report Card"></a>
+<a href="https://github.com/go-pantheon/fabrica-util/blob/main/LICENSE"><img src="https://img.shields.io/github/license/go-pantheon/fabrica-util" alt="License"></a>
+<a href="https://deepwiki.com/go-pantheon/fabrica-util"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+</p>
+
+## Fabrica Util
 
 Fabrica Util is a comprehensive utility library for the go-pantheon ecosystem, providing common functionality for all go-pantheon components. This library encapsulates reusable code patterns, algorithms, and helper functions to ensure consistency and avoid duplication in the game server microservices infrastructure.
 
@@ -58,15 +71,15 @@ Fabrica Util provides a wide range of utility packages:
 
 ## Technology Stack
 
-| Technology/Component | Purpose | Version |
-|---------|------|------|
-| Go | Primary development language | 1.23+ |
-| go-kratos | Microservice framework dependency | v2.8.4 |
-| carbon | Time handling library | v2.6.2 |
-| go-redis | Redis client for caching and rate limiting | v9.7.3 |
-| atomic | Thread-safe atomic operations | v1.11.0 |
-| crypto | Cryptographic operations | v0.37.0 |
-| murmur3 | Hash algorithm | v1.1.0 |
+| Technology/Component | Purpose                                    | Version |
+| -------------------- | ------------------------------------------ | ------- |
+| Go                   | Primary development language               | 1.23+   |
+| go-kratos            | Microservice framework dependency          | v2.8.4  |
+| carbon               | Time handling library                      | v2.6.2  |
+| go-redis             | Redis client for caching and rate limiting | v9.7.3  |
+| atomic               | Thread-safe atomic operations              | v1.11.0 |
+| crypto               | Cryptographic operations                   | v0.37.0 |
+| murmur3              | Hash algorithm                             | v1.1.0  |
 
 ## Requirements
 
