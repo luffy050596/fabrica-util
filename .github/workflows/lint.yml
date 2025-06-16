@@ -4,9 +4,25 @@ permissions:
   pull-requests: write
 on:
   push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - ".github/workflows/lint.yml"
   pull_request:
     branches:
       - main
+      - develop
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - ".golangci.yml"
+      - ".github/workflows/lint.yml"
   workflow_dispatch:
 
 jobs:
@@ -29,8 +45,10 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.resolve-modules.outputs.matrix) }}
     steps:
-      - name: checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
