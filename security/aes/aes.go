@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
+	"slices"
 
 	"github.com/go-pantheon/fabrica-util/errors"
 )
@@ -41,7 +42,7 @@ func NewAESCipher(key []byte) (*Cipher, error) {
 // EncryptAllowEmpty encrypts plaintext using AES-GCM, allowing empty data
 func (c *Cipher) EncryptAllowEmpty(data []byte) ([]byte, error) {
 	if len(data) == 0 {
-		return data, nil
+		return slices.Clone(data), nil
 	}
 
 	return c.Encrypt(data)
@@ -66,7 +67,7 @@ func (c *Cipher) Encrypt(data []byte) ([]byte, error) {
 // DecryptAllowEmpty decrypts ciphertext using AES-GCM, allowing empty data
 func (c *Cipher) DecryptAllowEmpty(data []byte) ([]byte, error) {
 	if len(data) == 0 {
-		return data, nil
+		return slices.Clone(data), nil
 	}
 
 	return c.Decrypt(data)
