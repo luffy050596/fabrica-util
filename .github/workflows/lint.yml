@@ -1,7 +1,5 @@
 name: Lint
-permissions:
-  contents: read
-  pull-requests: write
+
 on:
   push:
     branches:
@@ -24,6 +22,14 @@ on:
       - ".golangci.yml"
       - ".github/workflows/lint.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   resolve-modules:
@@ -48,7 +54,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
